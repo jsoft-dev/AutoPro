@@ -10,7 +10,7 @@ Auto service station management — **phase 1**: Customer Representative (Flutte
 
 ## Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - **PostgreSQL** (local install or Docker — see below)
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (for mobile)
 
