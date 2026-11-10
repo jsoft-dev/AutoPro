@@ -1,0 +1,17 @@
+# $0 demo: Neon Postgres (free, no expiry) + Render free web (Docker).
+# Do not add Render's free Postgres here — it expires after ~30 days.
+services:
+  - type: web
+    name: autopro-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /swagger/index.html
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: EnableSwagger
+        value: "true"
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Jwt__SigningKey
+        generateValue: true

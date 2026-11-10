@@ -89,11 +89,47 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
 | PATCH | `/api/v1/jobs/{id}/status` | CR status changes (not `Closed`) |
 | POST | `/api/v1/jobs/{id}/purchases` | Add inventory / vendor line |
 
+## Free demo hosting ($0 / month)
+
+Hosted demo stack that stays free: **Neon** (Postgres, no credit card, no time limit) + **Render** (free Docker web service). Avoid Render’s free Postgres — it expires after about 30 days.
+
+| Cost | What |
+|------|------|
+| **$0** | Neon DB + Render free web |
+| **$0** | No card required for Neon; Render free tier usually works without a card (they may ask for verification in some regions) |
+| **Catch** | Render free service sleeps after 15 min idle (~1 min wake-up; first request after sleep can feel slow) |
+
+### 1. Database (Neon)
+
+1. Sign up at [neon.tech](https://neon.tech) → create project `autopro`.
+2. Copy the connection string and append `;Ssl Mode=Require` if it is not already there.
+
+### 2. API (Render)
+
+1. Push this repo to GitHub.
+2. [Render](https://render.com) → **New** → **Blueprint** → connect the repo (`render.yaml` is included).
+3. When prompted, set `ConnectionStrings__DefaultConnection` to the Neon URL.
+4. After deploy: `https://<your-service>.onrender.com/swagger` — login `cr.demo` / `ChangeMe123!`.
+
+### 3. Flutter against the hosted API
+
+```powershell
+flutter run --dart-define=API_BASE_URL=https://<your-service>.onrender.com
+```
+
+Use **HTTPS** for physical devices (required on Android unless you allow cleartext).
+
+### Strictest $0 (no cloud signup)
+
+Run API + Postgres locally (`docker compose up -d`, `dotnet run`), expose with [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) — free URL while your PC is on.
+
 ## Solution layout
 
 ```
 AutoPro/
   docker-compose.yml
+  Dockerfile
+  render.yaml
   src/
     AutoPro.Api/
     AutoPro.Application/

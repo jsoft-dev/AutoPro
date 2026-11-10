@@ -4,6 +4,10 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
@@ -48,7 +52,9 @@ using (var scope = app.Services.CreateScope())
     await DataSeeder.SeedAsync(db, logger);
 }
 
-if (app.Environment.IsDevelopment())
+var enableSwagger = app.Environment.IsDevelopment()
+    || builder.Configuration.GetValue("EnableSwagger", false);
+if (enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
