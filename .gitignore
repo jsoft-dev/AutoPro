@@ -1,0 +1,18 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+appsettings.*.local.json
+
+# Flutter
+mobile/**/.dart_tool/
+mobile/**/build/
+mobile/**/.flutter-plugins
+mobile/**/.flutter-plugins-dependencies
+mobile/**/.packages
+mobile/**/pubspec.lock
+
+# IDE
+.idea/
+*.iml
