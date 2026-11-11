@@ -13,17 +13,41 @@ public static class DataSeeder
 
         if (!await db.StaffUsers.AnyAsync(ct))
         {
+            db.StaffUsers.AddRange(
+                new StaffUser
+                {
+                    Id = Guid.Parse("11111111-1111-1111-1111-111111111001"),
+                    UserName = "cr.demo",
+                    DisplayName = "Demo Customer Rep",
+                    Role = UserRole.CustomerRepresentative,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("ChangeMe123!"),
+                    IsActive = true
+                },
+                new StaffUser
+                {
+                    Id = Guid.Parse("11111111-1111-1111-1111-111111111002"),
+                    UserName = "ao.demo",
+                    DisplayName = "Demo Admin Officer",
+                    Role = UserRole.AdministrativeOfficer,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("ChangeMe123!"),
+                    IsActive = true
+                });
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Seeded demo users: cr.demo and ao.demo / ChangeMe123!");
+        }
+        else if (!await db.StaffUsers.AnyAsync(u => u.UserName == "ao.demo", ct))
+        {
             db.StaffUsers.Add(new StaffUser
             {
-                Id = Guid.Parse("11111111-1111-1111-1111-111111111001"),
-                UserName = "cr.demo",
-                DisplayName = "Demo Customer Rep",
-                Role = UserRole.CustomerRepresentative,
+                Id = Guid.Parse("11111111-1111-1111-1111-111111111002"),
+                UserName = "ao.demo",
+                DisplayName = "Demo Admin Officer",
+                Role = UserRole.AdministrativeOfficer,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("ChangeMe123!"),
                 IsActive = true
             });
             await db.SaveChangesAsync(ct);
-            logger.LogInformation("Seeded demo CR user: cr.demo / ChangeMe123!");
+            logger.LogInformation("Seeded demo AO user: ao.demo / ChangeMe123!");
         }
     }
 }

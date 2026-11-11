@@ -1,0 +1,18 @@
+<div class="layout no-print">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="logo">AutoPro</span>
+      <span class="desk">Admin office</span>
+    </div>
+    <nav>
+      <a routerLink="/jobs" routerLinkActive="active">Jobs</a>
+    </nav>
+    <div class="topbar__user">
+      <span>{{ auth.displayName() }}</span>
+      <button type="button" class="ghost" (click)="signOut()">Sign out</button>
+    </div>
+  </header>
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

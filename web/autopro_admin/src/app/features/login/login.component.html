@@ -1,0 +1,29 @@
+<div class="login-page">
+  <div class="panel">
+    <div class="brand">
+      <span class="logo">AutoPro</span>
+      <h1>Administrative desk</h1>
+      <p class="subtitle">Track jobs, take payment, and print bills.</p>
+    </div>
+
+    @if (error()) {
+      <div class="alert" role="alert">{{ error() }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label>
+        Username
+        <input type="text" formControlName="userName" autocomplete="username" />
+      </label>
+      <label>
+        Password
+        <input type="password" formControlName="password" autocomplete="current-password" />
+      </label>
+      <button type="submit" [disabled]="submitting() || form.invalid">
+        {{ submitting() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+
+    <p class="hint">Demo: <code>ao.demo</code> / <code>ChangeMe123!</code></p>
+  </div>
+</div>

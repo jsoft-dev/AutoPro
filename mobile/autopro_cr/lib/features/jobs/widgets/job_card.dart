@@ -61,6 +61,14 @@ class JobCard extends StatelessWidget {
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      job.jobTypeLabel,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 12,

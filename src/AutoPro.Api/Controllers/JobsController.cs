@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AutoPro.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = "CustomerRepresentative")]
+[Authorize]
 [Route("api/v1/jobs")]
 public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) : ControllerBase
 {
@@ -20,6 +20,7 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet("today")]
+    [Authorize(Roles = "CustomerRepresentative,AdministrativeOfficer")]
     public async Task<ActionResult<IEnumerable<JobListItemResponse>>> Today(CancellationToken ct)
     {
         var start = DateTime.UtcNow.Date;
@@ -28,6 +29,7 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
     }
 
     [HttpGet]
+    [Authorize(Roles = "CustomerRepresentative,AdministrativeOfficer")]
     public async Task<ActionResult<IEnumerable<JobListItemResponse>>> List(
         [FromQuery] JobStatus? status,
         [FromQuery] DateTime? from,
@@ -42,23 +44,40 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
         if (from.HasValue) q = q.Where(j => j.CreatedAtUtc >= from.Value.ToUniversalTime());
         if (to.HasValue) q = q.Where(j => j.CreatedAtUtc < to.Value.ToUniversalTime());
 
-        var items = await q
+        var rows = await q
             .OrderByDescending(j => j.CreatedAtUtc)
             .Take(100)
-            .Select(j => new JobListItemResponse(
+            .Select(j => new
+            {
                 j.Id,
                 j.JobNumber,
                 j.Status,
-                j.Vehicle.PlateNumber,
-                j.Vehicle.Customer.FullName,
+                j.JobType,
+                j.JobTypeOtherDescription,
+                PlateNumber = j.Vehicle.PlateNumber,
+                CustomerName = j.Vehicle.Customer.FullName,
                 j.OdometerReading,
-                j.CreatedAtUtc))
+                j.CreatedAtUtc
+            })
             .ToListAsync(ct);
+
+        var items = rows.Select(j => new JobListItemResponse(
+            j.Id,
+            j.JobNumber,
+            j.Status,
+            j.JobType,
+            j.JobTypeOtherDescription,
+            JobTypeDisplay.Label(j.JobType, j.JobTypeOtherDescription),
+            j.PlateNumber,
+            j.CustomerName,
+            j.OdometerReading,
+            j.CreatedAtUtc)).ToList();
 
         return Ok(items);
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "CustomerRepresentative,AdministrativeOfficer")]
     public async Task<ActionResult<JobDetailResponse>> GetById(Guid id, CancellationToken ct)
     {
         var job = await LoadJobForDetailAsync(id, ct);
@@ -67,6 +86,7 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
     }
 
     [HttpPost]
+    [Authorize(Roles = "CustomerRepresentative")]
     public async Task<ActionResult<JobDetailResponse>> TakeJob([FromBody] TakeJobRequest request, CancellationToken ct)
     {
         var vehicle = await db.Vehicles
@@ -83,12 +103,19 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
         if (active)
             return Conflict(new { message = "This vehicle already has an active job." });
 
+        if (request.JobType == JobType.Other && string.IsNullOrWhiteSpace(request.JobTypeOtherDescription))
+            return BadRequest(new { message = "Describe the job type when Other is selected." });
+
         var job = new ServiceJob
         {
             Id = Guid.NewGuid(),
             JobNumber = await jobNumbers.NextAsync(ct),
             VehicleId = vehicle.Id,
             CreatedByUserId = CurrentUserId,
+            JobType = request.JobType,
+            JobTypeOtherDescription = request.JobType == JobType.Other
+                ? request.JobTypeOtherDescription!.Trim()
+                : null,
             OdometerReading = request.OdometerReading,
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
             Status = JobStatus.OnGoing,
@@ -114,6 +141,7 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
     }
 
     [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "CustomerRepresentative")]
     public async Task<ActionResult<JobDetailResponse>> UpdateStatus(
         Guid id,
         [FromBody] UpdateJobStatusRequest request,
@@ -161,6 +189,7 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
     }
 
     [HttpPost("{id:guid}/purchases")]
+    [Authorize(Roles = "CustomerRepresentative")]
     public async Task<ActionResult<JobDetailResponse>> AddPurchase(
         Guid id,
         [FromBody] AddPurchaseLineRequest request,
@@ -209,26 +238,49 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
             .Include(j => j.StatusHistory)
             .FirstOrDefaultAsync(j => j.Id == id, ct);
 
-    private async Task<List<JobListItemResponse>> ListInternal(DateTime from, DateTime to, CancellationToken ct) =>
-        await db.ServiceJobs.AsNoTracking()
+    private async Task<List<JobListItemResponse>> ListInternal(DateTime from, DateTime to, CancellationToken ct)
+    {
+        var rows = await db.ServiceJobs.AsNoTracking()
             .Include(j => j.Vehicle).ThenInclude(v => v.Customer)
             .Where(j => j.CreatedAtUtc >= from && j.CreatedAtUtc < to)
             .OrderByDescending(j => j.CreatedAtUtc)
-            .Select(j => new JobListItemResponse(
+            .Select(j => new
+            {
                 j.Id,
                 j.JobNumber,
                 j.Status,
-                j.Vehicle.PlateNumber,
-                j.Vehicle.Customer.FullName,
+                j.JobType,
+                j.JobTypeOtherDescription,
+                PlateNumber = j.Vehicle.PlateNumber,
+                CustomerName = j.Vehicle.Customer.FullName,
                 j.OdometerReading,
-                j.CreatedAtUtc))
+                j.CreatedAtUtc
+            })
             .ToListAsync(ct);
 
-    private static JobDetailResponse ToDetail(ServiceJob job) =>
-        new(
+        return rows.Select(j => new JobListItemResponse(
+            j.Id,
+            j.JobNumber,
+            j.Status,
+            j.JobType,
+            j.JobTypeOtherDescription,
+            JobTypeDisplay.Label(j.JobType, j.JobTypeOtherDescription),
+            j.PlateNumber,
+            j.CustomerName,
+            j.OdometerReading,
+            j.CreatedAtUtc)).ToList();
+    }
+
+    private static JobDetailResponse ToDetail(ServiceJob job)
+    {
+        var purchasesTotal = job.PurchaseLines.Sum(p => p.Quantity * p.UnitPrice);
+        return new(
             job.Id,
             job.JobNumber,
             job.Status,
+            job.JobType,
+            job.JobTypeOtherDescription,
+            JobTypeDisplay.Label(job.JobType, job.JobTypeOtherDescription),
             job.VehicleId,
             job.Vehicle.PlateNumber,
             job.Vehicle.CustomerId,
@@ -236,6 +288,9 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
             job.OdometerReading,
             job.Notes,
             job.CreatedAtUtc,
+            job.CompletedAtUtc,
+            job.ClosedAtUtc,
+            purchasesTotal,
             job.PurchaseLines
                 .OrderBy(p => p.CreatedAtUtc)
                 .Select(p => new JobPurchaseLineResponse(
@@ -245,4 +300,5 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
                 .OrderBy(h => h.ChangedAtUtc)
                 .Select(h => new JobStatusHistoryResponse(h.FromStatus, h.ToStatus, h.ChangedAtUtc, h.Note))
                 .ToList());
+    }
 }

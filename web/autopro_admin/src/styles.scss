@@ -1,0 +1,59 @@
+:root {
+  --ap-primary: #0d47a1;
+  --ap-primary-dark: #002171;
+  --ap-surface: #f5f7fb;
+  --ap-card: #ffffff;
+  --ap-text: #1a1d26;
+  --ap-muted: #5c6478;
+  --ap-border: #e2e6ef;
+  --ap-success: #1b5e20;
+  --ap-warning: #e65100;
+  --ap-danger: #b71c1c;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--ap-surface);
+  color: var(--ap-text);
+}
+
+a {
+  color: var(--ap-primary);
+}
+
+button {
+  font-family: inherit;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-bill,
+  .print-bill * {
+    visibility: visible;
+  }
+
+  .print-bill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 1.5rem;
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

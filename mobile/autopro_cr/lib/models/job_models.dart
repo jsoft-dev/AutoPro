@@ -45,6 +45,71 @@ enum JobStatus {
       parse(json['status'] ?? json['Status']);
 }
 
+enum ServiceJobType {
+  wash,
+  fullService,
+  repair,
+  other;
+
+  String get apiValue {
+    switch (this) {
+      case ServiceJobType.wash:
+        return 'Wash';
+      case ServiceJobType.fullService:
+        return 'FullService';
+      case ServiceJobType.repair:
+        return 'Repair';
+      case ServiceJobType.other:
+        return 'Other';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case ServiceJobType.wash:
+        return 'Wash';
+      case ServiceJobType.fullService:
+        return 'Full Service';
+      case ServiceJobType.repair:
+        return 'Repair';
+      case ServiceJobType.other:
+        return 'Other';
+    }
+  }
+
+  static ServiceJobType parse(dynamic value) {
+    if (value is String) {
+      final normalized = value.replaceAll(RegExp(r'[\s_-]'), '').toLowerCase();
+      for (final type in ServiceJobType.values) {
+        final api = type.apiValue.replaceAll(RegExp(r'[\s_-]'), '').toLowerCase();
+        if (normalized == api || normalized == type.name.toLowerCase()) {
+          return type;
+        }
+      }
+    }
+    if (value is int) {
+      if (value >= 0 && value < ServiceJobType.values.length) {
+        return ServiceJobType.values[value];
+      }
+    }
+    return ServiceJobType.wash;
+  }
+
+  static String displayLabel({
+    required ServiceJobType type,
+    String? otherDescription,
+    String? serverLabel,
+  }) {
+    if (serverLabel != null && serverLabel.isNotEmpty) return serverLabel;
+    if (type == ServiceJobType.other &&
+        otherDescription != null &&
+        otherDescription.trim().isNotEmpty) {
+      return otherDescription.trim();
+    }
+    return type.label;
+  }
+}
+
 enum PurchaseSource {
   inventory,
   externalVendor;
@@ -70,25 +135,41 @@ class JobListItem {
     required this.id,
     required this.jobNumber,
     required this.status,
+    required this.jobType,
+    this.jobTypeOtherDescription,
+    required this.jobTypeLabel,
     required this.plateNumber,
     required this.customerName,
     this.odometerReading,
     required this.createdAtUtc,
   });
 
-  factory JobListItem.fromJson(Map<String, dynamic> json) => JobListItem(
+  factory JobListItem.fromJson(Map<String, dynamic> json) {
+    final jobType = ServiceJobType.parse(json['jobType']);
+    return JobListItem(
         id: json['id'] as String,
         jobNumber: json['jobNumber'] as String,
         status: JobStatus.parseJsonField(json),
+        jobType: jobType,
+        jobTypeOtherDescription: json['jobTypeOtherDescription'] as String?,
+        jobTypeLabel: ServiceJobType.displayLabel(
+          type: jobType,
+          otherDescription: json['jobTypeOtherDescription'] as String?,
+          serverLabel: json['jobTypeLabel'] as String?,
+        ),
         plateNumber: json['plateNumber'] as String? ?? '',
         customerName: json['customerName'] as String? ?? '',
         odometerReading: json['odometerReading'] as int?,
         createdAtUtc: DateTime.parse(json['createdAtUtc'] as String),
       );
+  }
 
   final String id;
   final String jobNumber;
   final JobStatus status;
+  final ServiceJobType jobType;
+  final String? jobTypeOtherDescription;
+  final String jobTypeLabel;
   final String plateNumber;
   final String customerName;
   final int? odometerReading;
@@ -137,6 +218,9 @@ class JobDetail {
     required this.id,
     required this.jobNumber,
     required this.status,
+    required this.jobType,
+    this.jobTypeOtherDescription,
+    required this.jobTypeLabel,
     required this.plateNumber,
     required this.customerName,
     this.odometerReading,
@@ -145,10 +229,19 @@ class JobDetail {
     required this.purchases,
   });
 
-  factory JobDetail.fromJson(Map<String, dynamic> json) => JobDetail(
+  factory JobDetail.fromJson(Map<String, dynamic> json) {
+    final jobType = ServiceJobType.parse(json['jobType']);
+    return JobDetail(
         id: json['id'] as String,
         jobNumber: json['jobNumber'] as String,
         status: JobStatus.parseJsonField(json),
+        jobType: jobType,
+        jobTypeOtherDescription: json['jobTypeOtherDescription'] as String?,
+        jobTypeLabel: ServiceJobType.displayLabel(
+          type: jobType,
+          otherDescription: json['jobTypeOtherDescription'] as String?,
+          serverLabel: json['jobTypeLabel'] as String?,
+        ),
         plateNumber: json['plateNumber'] as String? ?? '',
         customerName: json['customerName'] as String? ?? '',
         odometerReading: json['odometerReading'] as int?,
@@ -158,10 +251,14 @@ class JobDetail {
             .map((e) => JobPurchaseLine.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
+  }
 
   final String id;
   final String jobNumber;
   final JobStatus status;
+  final ServiceJobType jobType;
+  final String? jobTypeOtherDescription;
+  final String jobTypeLabel;
   final String plateNumber;
   final String customerName;
   final int? odometerReading;
@@ -182,6 +279,9 @@ class JobDetail {
         id: id,
         jobNumber: jobNumber,
         status: status ?? this.status,
+        jobType: jobType,
+        jobTypeOtherDescription: jobTypeOtherDescription,
+        jobTypeLabel: jobTypeLabel,
         plateNumber: plateNumber,
         customerName: customerName,
         odometerReading: odometerReading ?? this.odometerReading,

@@ -152,6 +152,13 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<int>("JobType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("JobTypeOtherDescription")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("Notes")
                         .HasColumnType("text");
 

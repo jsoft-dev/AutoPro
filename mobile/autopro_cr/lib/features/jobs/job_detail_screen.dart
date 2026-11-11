@@ -360,6 +360,11 @@ class _VehicleCard extends StatelessWidget {
                 title: Text('${job.odometerReading} km'),
                 subtitle: const Text('Odometer at check-in'),
               ),
+            ListTile(
+              leading: const Icon(Icons.handyman_outlined),
+              title: Text(job.jobTypeLabel),
+              subtitle: const Text('Job type'),
+            ),
           ],
         ),
       ),

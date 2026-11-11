@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_session.dart';
+import '../../models/job_models.dart';
 import '../../widgets/inline_error.dart';
 
 class TakeJobScreen extends StatefulWidget {
@@ -20,11 +21,14 @@ class TakeJobScreen extends StatefulWidget {
 }
 
 class _TakeJobScreenState extends State<TakeJobScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _odoController = TextEditingController();
   final _notesController = TextEditingController();
+  final _otherJobTypeController = TextEditingController();
   bool _loading = false;
   String? _error;
   Map<String, dynamic>? _resolvedVehicle;
+  ServiceJobType _jobType = ServiceJobType.wash;
 
   late final ApiClient _api = ApiClient(widget.session);
 
@@ -57,10 +61,15 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
   Future<void> _takeJob() async {
     final v = _resolvedVehicle;
     if (v == null) return;
+    if (!_formKey.currentState!.validate()) return;
 
     int? odo;
     final odoText = _odoController.text.trim();
     if (odoText.isNotEmpty) odo = int.tryParse(odoText);
+
+    final otherText = _otherJobTypeController.text.trim();
+    final jobTypeOther =
+        _jobType == ServiceJobType.other ? otherText : null;
 
     setState(() {
       _loading = true;
@@ -69,6 +78,8 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
     try {
       final created = await _api.takeJob(
         vehicleId: v['vehicleId'] as String,
+        jobType: _jobType.apiValue,
+        jobTypeOtherDescription: jobTypeOther,
         odometer: odo,
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
@@ -88,6 +99,7 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
   void dispose() {
     _odoController.dispose();
     _notesController.dispose();
+    _otherJobTypeController.dispose();
     super.dispose();
   }
 
@@ -101,93 +113,159 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
       appBar: AppBar(title: const Text('Take job')),
       body: _loading && v == null
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (v != null) ...[
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          children: [
-                            ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: scheme.primaryContainer,
-                                child: Icon(
-                                  Icons.directions_car,
-                                  color: scheme.onPrimaryContainer,
+          : Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (v != null) ...[
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Column(
+                            children: [
+                              ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: scheme.primaryContainer,
+                                  child: Icon(
+                                    Icons.verified_outlined,
+                                    color: scheme.onPrimaryContainer,
+                                  ),
+                                ),
+                                title: Text(
+                                  'Vehicle authenticated',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: const Text(
+                                  'Customer and vehicle matched from QR or registration number',
                                 ),
                               ),
-                              title: Text(
-                                v['plateNumber']?.toString() ?? '',
-                                style: theme.textTheme.titleLarge,
+                              const Divider(height: 1, indent: 16, endIndent: 16),
+                              ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: scheme.secondaryContainer,
+                                  child: Icon(
+                                    Icons.directions_car,
+                                    color: scheme.onSecondaryContainer,
+                                  ),
+                                ),
+                                title: Text(
+                                  v['plateNumber']?.toString() ?? '',
+                                  style: theme.textTheme.titleLarge,
+                                ),
                               ),
-                              subtitle: const Text('Registered vehicle'),
-                            ),
-                            const Divider(height: 1, indent: 16, endIndent: 16),
-                            ListTile(
-                              leading: const Icon(Icons.person_outline),
-                              title: Text(v['customerName']?.toString() ?? ''),
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.phone_outlined),
-                              title: Text(v['customerPhone']?.toString() ?? ''),
-                            ),
-                          ],
+                              ListTile(
+                                leading: const Icon(Icons.person_outline),
+                                title: Text(v['customerName']?.toString() ?? ''),
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.phone_outlined),
+                                title: Text(v['customerPhone']?.toString() ?? ''),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 20),
+                    ],
+                    Text(
+                      'Job details',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
-                    const SizedBox(height: 20),
-                  ],
-                  Text(
-                    'Job details',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _odoController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Odometer (optional)',
-                      prefixIcon: Icon(Icons.speed_outlined),
-                      helperText: 'Current mileage reading',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _notesController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Notes',
-                      prefixIcon: Icon(Icons.notes_outlined),
-                      alignLabelWithHint: true,
-                    ),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 16),
-                    InlineError(message: _error!),
-                  ],
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: _loading ? null : _takeJob,
-                    icon: _loading
-                        ? SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: scheme.onPrimary,
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<ServiceJobType>(
+                      value: _jobType,
+                      decoration: const InputDecoration(
+                        labelText: 'Job type',
+                        prefixIcon: Icon(Icons.handyman_outlined),
+                      ),
+                      items: ServiceJobType.values
+                          .map(
+                            (t) => DropdownMenuItem(
+                              value: t,
+                              child: Text(t.label),
                             ),
                           )
-                        : const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Start job'),
-                  ),
-                ],
+                          .toList(),
+                      onChanged: _loading
+                          ? null
+                          : (value) {
+                              if (value == null) return;
+                              setState(() {
+                                _jobType = value;
+                                if (value != ServiceJobType.other) {
+                                  _otherJobTypeController.clear();
+                                }
+                              });
+                            },
+                    ),
+                    if (_jobType == ServiceJobType.other) ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _otherJobTypeController,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'Describe job type',
+                          prefixIcon: Icon(Icons.edit_outlined),
+                          helperText: 'Required when Other is selected',
+                        ),
+                        validator: (value) {
+                          if (_jobType != ServiceJobType.other) return null;
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Enter the job type';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _odoController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: 'Odometer (optional)',
+                        prefixIcon: Icon(Icons.speed_outlined),
+                        helperText: 'Current mileage reading',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _notesController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Notes',
+                        prefixIcon: Icon(Icons.notes_outlined),
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 16),
+                      InlineError(message: _error!),
+                    ],
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: _loading ? null : _takeJob,
+                      icon: _loading
+                          ? SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: scheme.onPrimary,
+                              ),
+                            )
+                          : const Icon(Icons.play_arrow_rounded),
+                      label: const Text('Start job'),
+                    ),
+                  ],
+                ),
               ),
             ),
     );

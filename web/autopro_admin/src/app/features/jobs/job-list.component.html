@@ -1,0 +1,67 @@
+<div class="page-header">
+  <div>
+    <h1>Jobs</h1>
+    <p class="lede">Monitor workshop jobs and finish completed work at the desk.</p>
+  </div>
+  <button type="button" class="ghost" (click)="load()" [disabled]="loading()">Refresh</button>
+</div>
+
+<div class="filters" role="tablist">
+  @for (f of filters; track f.key) {
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="filter() === f.key"
+      class="filter"
+      [class.active]="filter() === f.key"
+      (click)="setFilter(f.key)"
+    >
+      <span class="filter__label">{{ f.label }}</span>
+      <span class="filter__desc">{{ f.description }}</span>
+    </button>
+  }
+</div>
+
+@if (error()) {
+  <div class="alert">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading jobs…</p>
+} @else if (items().length === 0) {
+  <div class="empty">
+    <p>No jobs in this view.</p>
+    <p class="muted">New jobs appear when a customer rep takes a vehicle at the front.</p>
+  </div>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Job</th>
+          <th>Customer</th>
+          <th>Type</th>
+          <th>Plate</th>
+          <th>Status</th>
+          <th>Opened</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (job of items(); track job.id) {
+          <tr>
+            <td class="mono">{{ job.jobNumber }}</td>
+            <td>{{ job.customerName }}</td>
+            <td>{{ job.jobTypeLabel }}</td>
+            <td>{{ job.plateNumber }}</td>
+            <td><app-job-status-chip [status]="job.status" /></td>
+            <td>{{ job.createdAtUtc | date: 'medium' }}</td>
+            <td class="actions">
+              <a [routerLink]="['/jobs', job.id]">Open</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

@@ -12,6 +12,8 @@ public class ServiceJob
     public StaffUser CreatedByUser { get; set; } = null!;
 
     public int? OdometerReading { get; set; }
+    public Enums.JobType JobType { get; set; }
+    public string? JobTypeOtherDescription { get; set; }
     public Enums.JobStatus Status { get; set; }
     public string? Notes { get; set; }
 

@@ -1,11 +1,11 @@
 # AutoPro
 
-Auto service station management — **phase 1**: Customer Representative (Flutter) + .NET API + PostgreSQL.
+Auto service station management — **phase 1**: Customer Representative (Flutter) + **Administrative Officer** (Angular) + .NET API + PostgreSQL.
 
 ## Decisions locked in
 
 - QR code is **per vehicle** (`autopro://v/{token}`)
-- Job statuses: `OnGoing`, `OnHold`, `Cancelled`, `Completed`, `Closed` (Admin **Close** → phase 2)
+- Job statuses: `OnGoing`, `OnHold`, `Cancelled`, `Completed`, `Closed` (Admin **Close** after payment)
 - Database: **PostgreSQL**
 
 ## Prerequisites
@@ -13,8 +13,19 @@ Auto service station management — **phase 1**: Customer Representative (Flutte
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - **PostgreSQL** (local install or Docker — see below)
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (for mobile)
+- [Node.js LTS](https://nodejs.org/) + Angular CLI (`npm i -g @angular/cli`) for the admin desk app
 
 ## Quick start
+
+### Dev launcher (optional)
+
+Opens a local web UI (in your browser) to start/stop the API, Angular admin, and Flutter app:
+
+```bash
+python3 tools/dev-launcher/launcher.py
+```
+
+Then use **http://127.0.0.1:8765** — or double-click `tools/dev-launcher/AutoPro Dev Launcher.command` on macOS.
 
 ### 1. Database (local PostgreSQL)
 
@@ -47,11 +58,28 @@ dotnet run --project src\AutoPro.Api\AutoPro.Api.csproj
 
 Swagger: http://localhost:5080/swagger
 
-**Demo login:** `cr.demo` / `ChangeMe123!`
+**Demo logins:** `cr.demo` / `ChangeMe123!` (customer rep), `ao.demo` / `ChangeMe123!` (admin officer)
 
 On first run, EF migrations apply and the demo CR user is seeded.
 
-### 3. Flutter (Customer Representative)
+### 3. Angular (Administrative Officer)
+
+```bash
+cd web/autopro_admin
+npm install
+npm start
+```
+
+Desk UI: http://localhost:4200 — sign in as `ao.demo`.
+
+Set the API URL in `src/environments/environment.ts` (default `http://localhost:5080`).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/jobs`, `/today`, `/{id}` | Same job views (AO + CR) |
+| POST | `/api/v1/admin/jobs/{id}/close` | Payment received → `Closed`, printable bill |
+
+### 4. Flutter (Customer Representative)
 
 ```powershell
 cd C:\Users\Janitha\Projects\AutoPro\mobile\autopro_cr
@@ -106,6 +134,7 @@ Copy the APK to the phone and install (enable “Install unknown apps” if side
 | GET | `/api/v1/jobs/{id}` | Job detail |
 | PATCH | `/api/v1/jobs/{id}/status` | CR status changes (not `Closed`) |
 | POST | `/api/v1/jobs/{id}/purchases` | Add inventory / vendor line |
+| POST | `/api/v1/admin/jobs/{id}/close` | AO: payment received → `Closed` |
 
 ## Free demo hosting ($0 / month)
 
@@ -154,10 +183,11 @@ AutoPro/
     AutoPro.Domain/
     AutoPro.Infrastructure/
   mobile/autopro_cr/    # Flutter CR app
+  web/autopro_admin/    # Angular Administrative Officer desk
 ```
 
 ## Next (in-repo backlog)
 
-- Flutter: job detail, purchases, status actions (registration done in app)
-- Angular admin app + `Closed` / billing (phase 2)
 - CTO / Supervisor roles
+- Itemized labor charges (not only purchase lines)
+- Persist payment method / receipt number on close

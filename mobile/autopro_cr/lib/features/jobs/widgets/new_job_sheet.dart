@@ -17,10 +17,10 @@ class NewJobSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Start a job', style: theme.textTheme.titleLarge),
+            Text('Authenticate vehicle', style: theme.textTheme.titleLarge),
             const SizedBox(height: 4),
             Text(
-              'Identify the vehicle, then capture odometer and notes.',
+              'Scan QR or enter the registration number, then choose the job type.',
               style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),

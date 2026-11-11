@@ -1,0 +1,193 @@
+@if (loading()) {
+  <p class="muted">Loading job…</p>
+} @else if (error() && !job()) {
+  <div class="alert">{{ error() }}</div>
+  <a routerLink="/jobs">Back to jobs</a>
+} @else if (job()) {
+  @let j = job()!;
+  <div class="no-print">
+    <a class="back" routerLink="/jobs">← Jobs</a>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Job {{ j.jobNumber }}</p>
+        <h1>{{ j.customerName }}</h1>
+        <p class="meta">
+          {{ j.jobTypeLabel }} · {{ j.plateNumber }}
+          @if (j.odometerReading != null) {
+            · {{ j.odometerReading | number }} km
+          }
+        </p>
+      </div>
+      <app-job-status-chip [status]="j.status" />
+    </header>
+
+    @if (error()) {
+      <div class="alert">{{ error() }}</div>
+    }
+
+    <div class="grid">
+      <section class="card">
+        <h2>Overview</h2>
+        <dl>
+          <div>
+            <dt>Opened</dt>
+            <dd>{{ j.createdAtUtc | date: 'medium' }}</dd>
+          </div>
+          @if (j.completedAtUtc) {
+            <div>
+              <dt>Completed</dt>
+              <dd>{{ j.completedAtUtc | date: 'medium' }}</dd>
+            </div>
+          }
+          @if (j.closedAtUtc) {
+            <div>
+              <dt>Closed</dt>
+              <dd>{{ j.closedAtUtc | date: 'medium' }}</dd>
+            </div>
+          }
+          @if (j.notes) {
+            <div class="full">
+              <dt>Front desk notes</dt>
+              <dd>{{ j.notes }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+
+      <section class="card total-card">
+        <h2>Charges</h2>
+        <p class="total">{{ j.purchasesTotal | currency: 'LKR ' : 'symbol' : '1.2-2' }}</p>
+        <p class="muted small">Parts &amp; services recorded on this job</p>
+        @if (canReprint()) {
+          <button type="button" class="secondary" (click)="printBill()">Print bill</button>
+        }
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Line items</h2>
+      @if (j.purchases.length === 0) {
+        <p class="muted">No purchase lines yet.</p>
+      } @else {
+        <table class="lines">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Source</th>
+              <th class="num">Qty</th>
+              <th class="num">Unit</th>
+              <th class="num">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of j.purchases; track line.id) {
+              <tr>
+                <td>
+                  {{ line.description }}
+                  @if (line.vendorName) {
+                    <span class="vendor">({{ line.vendorName }})</span>
+                  }
+                </td>
+                <td>{{ line.source === 'Inventory' ? 'Inventory' : 'Vendor' }}</td>
+                <td class="num">{{ line.quantity }}</td>
+                <td class="num">{{ line.unitPrice | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
+                <td class="num">{{ lineTotal(line) | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    <section class="card">
+      <h2>Status history</h2>
+      <ul class="timeline">
+        @for (h of j.statusHistory; track h.changedAtUtc + h.toStatus) {
+          <li>
+            <span class="when">{{ h.changedAtUtc | date: 'short' }}</span>
+            <span
+              >{{ statusLabel(h.fromStatus) }} → <strong>{{ statusLabel(h.toStatus) }}</strong></span
+            >
+            @if (h.note) {
+              <span class="note">{{ h.note }}</span>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+
+    @if (canClose()) {
+      <section class="card payment-card">
+        <h2>Receive payment &amp; close</h2>
+        <p class="muted">
+          The customer rep marked this job completed. Collect payment, then close to finish.
+        </p>
+        <form [formGroup]="closeForm" (ngSubmit)="receivePaymentAndClose()">
+          <label>
+            Payment note (optional)
+            <input type="text" formControlName="paymentNote" placeholder="e.g. Cash, Card ref…" />
+          </label>
+          <button type="submit" class="primary" [disabled]="closing()">
+            {{ closing() ? 'Closing…' : 'Payment received — close job' }}
+          </button>
+        </form>
+      </section>
+    }
+  </div>
+
+  @if (showBill() || j.status === 'Closed') {
+    <article class="print-bill" [class.visible]="showBill() || j.status === 'Closed'">
+      <header class="bill-head">
+        <div>
+          <h1>AutoPro Service Station</h1>
+          <p>Tax invoice / receipt</p>
+        </div>
+        <div class="bill-meta">
+          <div><strong>Job</strong> {{ j.jobNumber }}</div>
+          <div><strong>Date</strong> {{ (j.closedAtUtc ?? j.completedAtUtc ?? j.createdAtUtc) | date: 'medium' }}</div>
+          <div><strong>Officer</strong> {{ officerName() }}</div>
+        </div>
+      </header>
+
+      <section class="bill-customer">
+        <div><strong>Customer</strong> {{ j.customerName }}</div>
+        <div><strong>Vehicle</strong> {{ j.plateNumber }}</div>
+        @if (j.odometerReading != null) {
+          <div><strong>Odometer</strong> {{ j.odometerReading | number }} km</div>
+        }
+      </section>
+
+      <table class="bill-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th class="num">Qty</th>
+            <th class="num">Unit</th>
+            <th class="num">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of j.purchases; track line.id) {
+            <tr>
+              <td>{{ line.description }}</td>
+              <td class="num">{{ line.quantity }}</td>
+              <td class="num">{{ line.unitPrice | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
+              <td class="num">{{ lineTotal(line) | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="num"><strong>Total due</strong></td>
+            <td class="num">
+              <strong>{{ j.purchasesTotal | currency: 'LKR ' : 'symbol' : '1.2-2' }}</strong>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <p class="bill-footer">Thank you for choosing AutoPro.</p>
+    </article>
+  }
+}

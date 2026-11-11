@@ -165,6 +165,8 @@ class ApiClient {
 
   Future<Map<String, dynamic>> takeJob({
     required String vehicleId,
+    required String jobType,
+    String? jobTypeOtherDescription,
     int? odometer,
     String? notes,
   }) async {
@@ -176,6 +178,8 @@ class ApiClient {
       },
       body: jsonEncode({
         'vehicleId': vehicleId,
+        'jobType': jobType,
+        'jobTypeOtherDescription': jobTypeOtherDescription,
         'odometerReading': odometer,
         'notes': notes,
       }),

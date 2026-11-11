@@ -51,6 +51,7 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
             e.HasIndex(x => x.JobNumber).IsUnique();
             e.HasIndex(x => x.Status);
             e.HasIndex(x => x.CreatedAtUtc);
+            e.Property(x => x.JobTypeOtherDescription).HasMaxLength(200);
             e.HasOne(x => x.Vehicle).WithMany(v => v.Jobs).HasForeignKey(x => x.VehicleId);
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedByUserId);
         });
