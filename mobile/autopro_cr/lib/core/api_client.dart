@@ -7,7 +7,7 @@ import 'auth_session.dart';
 
 class ApiClient {
   ApiClient(this._session, {String? baseUrl})
-      : baseUrl = baseUrl ?? ApiConfig.defaultBaseUrl;
+      : baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final AuthSession _session;
   final String baseUrl;

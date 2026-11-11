@@ -77,7 +77,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           final noteCtrl = TextEditingController();
           return AlertDialog(
             title: Text(
-              target == JobStatus.cancelled ? 'Cancel this job?' : 'Complete this job?',
+              target == JobStatus.cancelled
+                  ? 'Cancel this job?'
+                  : 'Complete this job?',
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -99,13 +101,18 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Back')),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Back')),
               FilledButton(
                 onPressed: () {
-                  note = noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim();
+                  note = noteCtrl.text.trim().isEmpty
+                      ? null
+                      : noteCtrl.text.trim();
                   Navigator.pop(ctx, true);
                 },
-                child: Text(target == JobStatus.cancelled ? 'Cancel job' : 'Complete'),
+                child: Text(
+                    target == JobStatus.cancelled ? 'Cancel job' : 'Complete'),
               ),
             ],
           );
@@ -129,7 +136,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       setState(() => _job = detail);
       unawaited(_syncJobFromServer());
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Status updated to ${JobStatusChip.labelOf(target)}')),
+        SnackBar(
+            content:
+                Text('Status updated to ${JobStatusChip.labelOf(target)}')),
       );
     } catch (e) {
       if (mounted) {
@@ -196,7 +205,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                       children: [
                         InlineError(message: _error!),
                         const SizedBox(height: 16),
-                        FilledButton(onPressed: _load, child: const Text('Retry')),
+                        FilledButton(
+                            onPressed: _load, child: const Text('Retry')),
                       ],
                     ),
                   ),
@@ -227,9 +237,10 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               _VehicleCard(job: job),
-                              if (job.notes != null && job.notes!.isNotEmpty) ...[
+                              if (job.notes != null &&
+                                  job.notes!.isNotEmpty) ...[
                                 const SizedBox(height: 16),
-                                _SectionTitle(title: 'Notes'),
+                                const _SectionTitle(title: 'Notes'),
                                 const SizedBox(height: 8),
                                 Card(
                                   child: Padding(
@@ -239,7 +250,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                 ),
                               ],
                               const SizedBox(height: 20),
-                              _SectionTitle(title: 'Status'),
+                              const _SectionTitle(title: 'Status'),
                               const SizedBox(height: 8),
                               _StatusActions(
                                 current: job.status,
@@ -249,7 +260,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                               const SizedBox(height: 24),
                               Row(
                                 children: [
-                                  Expanded(child: _SectionTitle(title: 'Purchases')),
+                                  const Expanded(
+                                      child: const _SectionTitle(
+                                          title: 'Purchases')),
                                   Text(
                                     'Total Rs ${job.purchasesTotal.toStringAsFixed(2)}',
                                     style: theme.textTheme.titleSmall?.copyWith(
@@ -266,14 +279,16 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                     padding: const EdgeInsets.all(20),
                                     child: Text(
                                       'No purchases yet. Add parts from the shop or external vendors.',
-                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                      style:
+                                          theme.textTheme.bodyMedium?.copyWith(
                                         color: scheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
                                 )
                               else
-                                ...job.purchases.map((p) => _PurchaseTile(line: p)),
+                                ...job.purchases
+                                    .map((p) => _PurchaseTile(line: p)),
                               const SizedBox(height: 80),
                             ],
                           ),
@@ -282,13 +297,14 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                     ],
                   ),
                 ),
-      floatingActionButton: job != null && JobStatusLogic.canModifyPurchases(job.status)
-          ? FloatingActionButton.extended(
-              onPressed: _openAddPurchase,
-              icon: const Icon(Icons.add_shopping_cart),
-              label: const Text('Add purchase'),
-            )
-          : null,
+      floatingActionButton:
+          job != null && JobStatusLogic.canModifyPurchases(job.status)
+              ? FloatingActionButton.extended(
+                  onPressed: _openAddPurchase,
+                  icon: const Icon(Icons.add_shopping_cart),
+                  label: const Text('Add purchase'),
+                )
+              : null,
     );
   }
 }
@@ -327,7 +343,8 @@ class _VehicleCard extends StatelessWidget {
             ListTile(
               leading: CircleAvatar(
                 backgroundColor: scheme.primaryContainer,
-                child: Icon(Icons.directions_car, color: scheme.onPrimaryContainer),
+                child: Icon(Icons.directions_car,
+                    color: scheme.onPrimaryContainer),
               ),
               title: Text(job.plateNumber, style: theme.textTheme.titleLarge),
               subtitle: const Text('Vehicle'),
@@ -456,7 +473,7 @@ class _StatusActionButton extends StatelessWidget {
     final label = JobStatusLogic.actionLabel(target);
     final icon = Icon(_icon, size: 22);
 
-    final shape = const RoundedRectangleBorder(borderRadius: _radius);
+    const shape = RoundedRectangleBorder(borderRadius: _radius);
     const minSize = Size(0, _height);
     const padding = EdgeInsets.symmetric(horizontal: 20, vertical: 12);
     final textStyle = theme.textTheme.titleSmall?.copyWith(
@@ -523,10 +540,13 @@ class _PurchaseTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isShop ? scheme.secondaryContainer : scheme.tertiaryContainer,
+          backgroundColor:
+              isShop ? scheme.secondaryContainer : scheme.tertiaryContainer,
           child: Icon(
             isShop ? Icons.inventory_2_outlined : Icons.storefront_outlined,
-            color: isShop ? scheme.onSecondaryContainer : scheme.onTertiaryContainer,
+            color: isShop
+                ? scheme.onSecondaryContainer
+                : scheme.onTertiaryContainer,
           ),
         ),
         title: Text(line.description),
@@ -537,7 +557,8 @@ class _PurchaseTile extends StatelessWidget {
         ),
         trailing: Text(
           'Rs ${line.lineTotal.toStringAsFixed(2)}',
-          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          style:
+              theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
     );
