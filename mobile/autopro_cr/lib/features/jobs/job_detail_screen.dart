@@ -86,8 +86,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               children: [
                 Text(
                   target == JobStatus.cancelled
-                      ? 'This job will be marked cancelled. The WebApp can still see it in records.'
-                      : 'Work is finished. Payment and closing happen later on the WebApp.',
+                      ? 'This job will be marked cancelled. It stays in office records.'
+                      : 'Work is finished. Payment and closing happen at the office.',
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -160,7 +160,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       isScrollControlled: true,
       showDragHandle: false,
       builder: (ctx) => AddPurchaseSheet(
-        onSearchInventory: (q) => _api.searchInventory(q),
+        onSearchInventory: (q, {offset = 0}) => _api.searchInventory(q, offset: offset),
         onSubmit: ({
           required source,
           required description,

@@ -34,6 +34,29 @@ button {
   font-family: inherit;
 }
 
+.autopro-logo {
+  display: block;
+  width: auto;
+  object-fit: contain;
+}
+
+.autopro-logo--login {
+  max-width: 280px;
+  max-height: 120px;
+  margin: 0 auto 0.5rem;
+}
+
+.autopro-logo--topbar {
+  max-height: 36px;
+  max-width: 140px;
+}
+
+.autopro-logo--print {
+  max-height: 72px;
+  max-width: 220px;
+  margin: 0 auto 0.5rem;
+}
+
 @media print {
   body * {
     visibility: hidden;

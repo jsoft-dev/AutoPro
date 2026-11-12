@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_session.dart';
+import '../../widgets/autopro_logo.dart';
 import '../../widgets/inline_error.dart';
 import '../home/home_screen.dart';
 
@@ -72,26 +73,9 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 32),
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: scheme.primaryContainer,
-                    child: Icon(
-                      Icons.car_repair_rounded,
-                      size: 40,
-                      color: scheme.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'AutoPro',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: scheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 16),
+                  const Center(child: AutoProLogo(height: 140)),
+                  const SizedBox(height: 20),
                   Text(
                     'Customer representative',
                     textAlign: TextAlign.center,

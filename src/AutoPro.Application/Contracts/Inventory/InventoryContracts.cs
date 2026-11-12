@@ -42,3 +42,7 @@ public record InventorySearchItemResponse(
     string Name,
     decimal QuantityOnHand,
     decimal UnitPrice);
+
+public record InventorySearchPageResponse(
+    IReadOnlyList<InventorySearchItemResponse> Items,
+    bool HasMore);

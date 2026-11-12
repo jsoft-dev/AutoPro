@@ -28,7 +28,7 @@ export class LoginComponent {
 
   constructor() {
     if (this.route.snapshot.queryParamMap.get('reason') === 'role') {
-      this.error.set('Only administrative officer accounts can sign in to the WebApp.');
+      this.error.set('Only administrative officer accounts can sign in here.');
     }
     if (this.auth.isLoggedIn() && this.auth.hasRole('AdministrativeOfficer')) {
       void this.router.navigateByUrl('/');
@@ -44,7 +44,7 @@ export class LoginComponent {
       next: () => {
         if (!this.auth.hasRole('AdministrativeOfficer')) {
           this.auth.logout();
-          this.error.set('Only administrative officer accounts can sign in to the WebApp.');
+          this.error.set('Only administrative officer accounts can sign in here.');
           this.submitting.set(false);
           return;
         }

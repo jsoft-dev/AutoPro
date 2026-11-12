@@ -63,7 +63,13 @@
   @if (showPrint() && qrDataUrl(); as src) {
     <article class="print-qr">
       <header class="label-head">
-        <h1>AutoPro</h1>
+        <img
+          class="autopro-logo autopro-logo--print"
+          src="/images/autopro-logo.png"
+          width="220"
+          height="72"
+          alt="AutoPro by Jsoft"
+        />
         <p>Vehicle QR — keep for future visits</p>
       </header>
       <p class="label-plate">{{ v.plateNumber }}</p>

@@ -136,18 +136,23 @@ class ApiClient {
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
-  Future<List<InventorySearchItem>> searchInventory(String query) async {
+  Future<InventorySearchPage> searchInventory(
+    String query, {
+    int offset = 0,
+    int limit = 20,
+  }) async {
     final res = await http.get(
       Uri.parse('$baseUrl/api/v1/inventory/search').replace(
-        queryParameters: {'q': query.trim()},
+        queryParameters: {
+          'q': query.trim(),
+          'offset': '$offset',
+          'limit': '$limit',
+        },
       ),
       headers: _authHeaders(),
     );
     _throwIfError(res);
-    final body = jsonDecode(res.body) as List<dynamic>;
-    return body
-        .map((e) => InventorySearchItem.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return InventorySearchPage.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
 
   Future<Map<String, dynamic>> addJobPurchase(

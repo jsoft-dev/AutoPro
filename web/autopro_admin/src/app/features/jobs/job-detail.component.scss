@@ -220,9 +220,14 @@ input {
   margin-bottom: 1rem;
 }
 
-.bill-head h1 {
+.bill-brand .bill-tagline {
+  margin: 0.25rem 0 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.autopro-logo--print {
   margin: 0;
-  font-size: 1.35rem;
 }
 
 .bill-meta {

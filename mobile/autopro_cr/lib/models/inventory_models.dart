@@ -1,3 +1,17 @@
+class InventorySearchPage {
+  const InventorySearchPage({required this.items, required this.hasMore});
+
+  factory InventorySearchPage.fromJson(Map<String, dynamic> json) => InventorySearchPage(
+        items: (json['items'] as List<dynamic>? ?? [])
+            .map((e) => InventorySearchItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        hasMore: json['hasMore'] as bool? ?? false,
+      );
+
+  final List<InventorySearchItem> items;
+  final bool hasMore;
+}
+
 class InventorySearchItem {
   InventorySearchItem({
     required this.id,

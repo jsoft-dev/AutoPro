@@ -142,9 +142,15 @@
   @if (showBill() || j.status === 'Closed') {
     <article class="print-bill" [class.visible]="showBill() || j.status === 'Closed'">
       <header class="bill-head">
-        <div>
-          <h1>AutoPro Service Station</h1>
-          <p>Tax invoice / receipt</p>
+        <div class="bill-brand">
+          <img
+            class="autopro-logo autopro-logo--print"
+            src="/images/autopro-logo.png"
+            width="220"
+            height="72"
+            alt="AutoPro by Jsoft"
+          />
+          <p class="bill-tagline">Tax invoice / receipt</p>
         </div>
         <div class="bill-meta">
           <div><strong>Job</strong> {{ j.jobNumber }}</div>
