@@ -17,6 +17,8 @@ public record JobListItemResponse(
 public record JobPurchaseLineResponse(
     Guid Id,
     PurchaseSource Source,
+    Guid? InventoryItemId,
+    string? InventoryPartNumber,
     string Description,
     decimal Quantity,
     decimal UnitPrice,

@@ -24,6 +24,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 LAUNCHER_DIR = Path(__file__).resolve().parent
 LAUNCHER_PORT = 8765
 POLL_SECONDS = 2
+MOBILE_DIR = REPO_ROOT / "mobile" / "autopro_cr"
+HOSTED_API_URL = "https://autopro-api-qciu.onrender.com"
+APK_OUTPUT = MOBILE_DIR / "build" / "app" / "outputs" / "flutter-apk" / "app-release.apk"
 
 _EXTRA_PATH_DIRS = [
     Path.home() / "flutter" / "bin",
@@ -57,6 +60,13 @@ def launcher_env() -> dict[str, str]:
     existing = env.get("PATH", "")
     if prepend:
         env["PATH"] = prepend + (os.pathsep + existing if existing else "")
+    if not env.get("ANDROID_HOME"):
+        sdk = Path.home() / "Library" / "Android" / "sdk"
+        if sdk.is_dir():
+            env["ANDROID_HOME"] = str(sdk)
+            platform_tools = sdk / "platform-tools"
+            if platform_tools.is_dir():
+                env["PATH"] = str(platform_tools) + os.pathsep + env.get("PATH", "")
     return env
 
 
@@ -199,7 +209,8 @@ def default_flutter_device() -> list[str]:
     except json.JSONDecodeError:
         devices = []
 
-    preferred = ("macos", "chrome", "ios")
+    # Camera QR scanning needs a phone or Android emulator — not macOS/Chrome.
+    preferred = ("android", "ios", "macos", "chrome")
     for kind in preferred:
         for dev in devices:
             if not isinstance(dev, dict):
@@ -244,12 +255,13 @@ class DevLauncher:
             "admin": ManagedProcess(),
             "mobile": ManagedProcess(),
         }
+        self._apk_building = False
         self._specs = self._build_specs()
 
     def _build_specs(self) -> dict[str, ServiceSpec]:
         api_proj = REPO_ROOT / "src" / "AutoPro.Api" / "AutoPro.Api.csproj"
         admin_dir = REPO_ROOT / "web" / "autopro_admin"
-        mobile_dir = REPO_ROOT / "mobile" / "autopro_cr"
+        mobile_dir = MOBILE_DIR
 
         return {
             "api": ServiceSpec(
@@ -347,7 +359,7 @@ class DevLauncher:
                 label = STATUS_STOPPED
                 running = False
 
-        return {
+        payload = {
             "key": key,
             "title": spec.title,
             "subtitle": spec.subtitle,
@@ -355,12 +367,72 @@ class DevLauncher:
             "status": label,
             "running": running,
         }
+        if key == "mobile":
+            with self._lock:
+                building = self._apk_building
+            payload["apk_building"] = building
+            payload["apk_path"] = str(APK_OUTPUT) if APK_OUTPUT.is_file() else None
+            payload["hosted_api_url"] = HOSTED_API_URL
+        return payload
 
     def all_status(self) -> dict:
         return {
             "repo": str(REPO_ROOT),
             "services": [self.service_status(k) for k in ("api", "admin", "mobile")],
         }
+
+    def build_apk_hosted(self) -> None:
+        with self._lock:
+            if self._apk_building:
+                _log("[Flutter CR APK] Build already in progress.\n")
+                return
+            self._apk_building = True
+
+        try:
+            flutter = resolve_tool("flutter")
+        except FileNotFoundError as exc:
+            with self._lock:
+                self._apk_building = False
+            _log(f"[Flutter CR APK] Failed: {exc}\n")
+            return
+
+        cmd = [
+            flutter,
+            "build",
+            "apk",
+            "--release",
+            f"--dart-define=API_BASE_URL={HOSTED_API_URL}",
+        ]
+        _log(f"[Flutter CR APK] $ {' '.join(cmd)}\n")
+        _log(f"[Flutter CR APK] API → {HOSTED_API_URL}\n")
+
+        def run_in_thread() -> None:
+            code = 1
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    cwd=MOBILE_DIR,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    env=launcher_env(),
+                )
+                code = proc.returncode or 0
+                for line in (proc.stdout or "").splitlines(keepends=True):
+                    _log(line)
+            except FileNotFoundError as exc:
+                _log(f"[Flutter CR APK] Failed: command not found ({exc}).\n")
+            except OSError as exc:
+                _log(f"[Flutter CR APK] Failed: {exc}\n")
+            else:
+                if code == 0 and APK_OUTPUT.is_file():
+                    _log(f"[Flutter CR APK] Done → {APK_OUTPUT}\n")
+                else:
+                    _log(f"[Flutter CR APK] Finished with exit code {code}.\n")
+            with self._lock:
+                self._apk_building = False
+
+        threading.Thread(target=run_in_thread, daemon=True).start()
 
     def start(self, key: str) -> None:
         spec = self._specs[key]
@@ -569,13 +641,24 @@ def index_html() -> str:
 
     function renderCards(data) {{
       const el = document.getElementById("cards");
-      el.innerHTML = data.services.map((s) => `
+      el.innerHTML = data.services.map((s) => {{
+        const apkNote = s.key === "mobile" && s.apk_path
+          ? `<div class="sub">APK: <code>${{escapeHtml(s.apk_path)}}</code></div>`
+          : "";
+        const apkBuilding = s.key === "mobile" && s.apk_building;
+        const exportBtn = s.key === "mobile"
+          ? `<button type="button" id="export-apk-btn" ${{apkBuilding ? "disabled" : ""}} onclick="exportApk()">${{apkBuilding ? "Building APK…" : "Export APK (hosted)"}}</button>`
+          : "";
+        return `
         <article class="card">
           <div class="card-head">
             <div>
               <h3>${{escapeHtml(s.title)}}</h3>
               <div class="sub">${{escapeHtml(s.subtitle)}}</div>
               ${{s.url ? `<a class="link" href="${{escapeAttr(s.url)}}" target="_blank" rel="noopener">${{escapeHtml(s.url)}}</a>` : ""}}
+              ${{s.key === "mobile" && s.hosted_api_url
+                ? `<div class="sub">Release APK API: ${{escapeHtml(s.hosted_api_url)}}</div>` : ""}}
+              ${{apkNote}}
             </div>
             <span class="pill ${{pillClass(s.status)}}">${{escapeHtml(s.status)}}</span>
           </div>
@@ -583,10 +666,23 @@ def index_html() -> str:
             <button type="button" onclick="action('${{s.key}}', 'start')">Start</button>
             <button type="button" onclick="action('${{s.key}}', 'restart')">Restart</button>
             <button type="button" onclick="action('${{s.key}}', 'stop')">Stop</button>
+            ${{exportBtn}}
           </div>
-        </article>
-      `).join("");
+        </article>`;
+      }}).join("");
       document.getElementById("repo").textContent = data.repo;
+    }}
+
+    async function exportApk() {{
+      const buttons = document.querySelectorAll("button");
+      buttons.forEach((b) => (b.disabled = true));
+      try {{
+        await fetch("/api/export-apk/mobile", {{ method: "POST" }});
+        await refresh();
+        await refreshLog();
+      }} finally {{
+        buttons.forEach((b) => (b.disabled = false));
+      }}
     }}
 
     async function action(key, op) {{
@@ -660,6 +756,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0]
         parts = path.strip("/").split("/")
+        if len(parts) == 3 and parts[0] == "api" and parts[1] == "export-apk" and parts[2] == "mobile":
+            LAUNCHER.build_apk_hosted()
+            self._json(200, {"ok": True})
+            return
         if len(parts) == 3 and parts[0] == "api" and parts[1] in ("start", "stop", "restart"):
             op, key = parts[1], parts[2]
             if key not in LAUNCHER._specs:

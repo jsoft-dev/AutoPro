@@ -160,16 +160,19 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       isScrollControlled: true,
       showDragHandle: false,
       builder: (ctx) => AddPurchaseSheet(
+        onSearchInventory: (q) => _api.searchInventory(q),
         onSubmit: ({
           required source,
           required description,
           required quantity,
           required unitPrice,
           vendorName,
+          inventoryItemId,
         }) async {
           final json = await _api.addJobPurchase(
             widget.jobId,
             source: source.apiValue,
+            inventoryItemId: inventoryItemId,
             description: description,
             quantity: quantity,
             unitPrice: unitPrice,
@@ -557,7 +560,11 @@ class _PurchaseTile extends StatelessWidget {
         title: Text(line.description),
         subtitle: Text(
           isShop
-              ? 'Shop inventory · qty ${line.quantity}'
+              ? [
+                  if (line.inventoryPartNumber != null) line.inventoryPartNumber,
+                  'Shop inventory',
+                  'qty ${line.quantity}',
+                ].join(' · ')
               : '${line.vendorName ?? 'Vendor'} · qty ${line.quantity}',
         ),
         trailing: Text(

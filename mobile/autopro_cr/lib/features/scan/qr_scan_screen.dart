@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -10,11 +12,34 @@ class QrScanScreen extends StatefulWidget {
   State<QrScanScreen> createState() => _QrScanScreenState();
 }
 
-class _QrScanScreenState extends State<QrScanScreen> {
+class _QrScanScreenState extends State<QrScanScreen> with WidgetsBindingObserver {
   final _controller = MobileScannerController(
+    autoStart: false,
     detectionSpeed: DetectionSpeed.noDuplicates,
   );
   bool _handled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_controller.start());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_controller.value.isInitialized) return;
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        unawaited(_controller.start());
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        unawaited(_controller.stop());
+    }
+  }
 
   String? _extractToken(Barcode barcode) {
     final raw = barcode.rawValue;
@@ -40,8 +65,64 @@ class _QrScanScreenState extends State<QrScanScreen> {
     }
   }
 
+  String _scannerErrorMessage(MobileScannerException error) {
+    return switch (error.errorCode) {
+      MobileScannerErrorCode.permissionDenied =>
+        'Camera access is required. Allow camera in your device settings for AutoPro, then tap Try again.',
+      MobileScannerErrorCode.unsupported =>
+        'QR scanning is not supported on this device. Use a physical phone or Android emulator with a camera.',
+      MobileScannerErrorCode.controllerUninitialized =>
+        'Camera is still starting…',
+      _ => 'Could not open the camera. Tap Try again.',
+    };
+  }
+
+  Widget _buildScannerError(
+    BuildContext context,
+    MobileScannerException error,
+    Widget? child,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
+    return ColoredBox(
+      color: scheme.surfaceContainerHighest,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.no_photography_outlined, size: 48, color: scheme.error),
+              const SizedBox(height: 16),
+              Text(
+                _scannerErrorMessage(error),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () => unawaited(_controller.start()),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try again'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(BuildContext context, Widget? child) {
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
@@ -70,6 +151,8 @@ class _QrScanScreenState extends State<QrScanScreen> {
                   MobileScanner(
                     controller: _controller,
                     onDetect: _onDetect,
+                    errorBuilder: _buildScannerError,
+                    placeholderBuilder: _buildPlaceholder,
                   ),
                   Center(
                     child: Container(

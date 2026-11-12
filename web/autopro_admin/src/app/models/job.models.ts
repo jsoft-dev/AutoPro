@@ -18,6 +18,8 @@ export interface JobListItem {
 export interface JobPurchaseLine {
   id: string;
   source: PurchaseSource;
+  inventoryItemId: string | null;
+  inventoryPartNumber: string | null;
   description: string;
   quantity: number;
   unitPrice: number;

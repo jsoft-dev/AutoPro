@@ -77,7 +77,10 @@ Set the API URL in `src/environments/environment.ts` (default `http://localhost:
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/v1/jobs`, `/today`, `/{id}` | Same job views (AO + CR) |
+| GET | `/api/v1/admin/vehicles`, `/{id}` | Registered vehicles + `qrPayload` for print |
 | POST | `/api/v1/admin/jobs/{id}/close` | Payment received → `Closed`, printable bill |
+
+**Vehicles** (nav): search by plate, customer, or phone → open a vehicle → **Print QR label** for the customer.
 
 ### 4. Flutter (Customer Representative)
 
@@ -135,6 +138,8 @@ Copy the APK to the phone and install (enable “Install unknown apps” if side
 | PATCH | `/api/v1/jobs/{id}/status` | CR status changes (not `Closed`) |
 | POST | `/api/v1/jobs/{id}/purchases` | Add inventory / vendor line |
 | POST | `/api/v1/admin/jobs/{id}/close` | AO: payment received → `Closed` |
+| GET | `/api/v1/admin/vehicles` | AO: list vehicles (`?q=` search, `?limit=` up to 200) |
+| GET | `/api/v1/admin/vehicles/{id}` | AO: vehicle detail incl. `qrPayload` |
 
 ## Free demo hosting ($0 / month)
 
@@ -142,9 +147,9 @@ Hosted demo stack that stays free: **Neon** (Postgres, no credit card, no time l
 
 | Cost | What |
 |------|------|
-| **$0** | Neon DB + Render free web |
+| **$0** | Neon DB + Render API + Render static admin |
 | **$0** | No card required for Neon; Render free tier usually works without a card (they may ask for verification in some regions) |
-| **Catch** | Render free service sleeps after 15 min idle (~1 min wake-up; first request after sleep can feel slow) |
+| **Catch** | Render **API** sleeps after 15 min idle (~1 min wake-up; first request after sleep can feel slow). The **admin static site** does not sleep. |
 
 ### 1. Database (Neon)
 
@@ -158,7 +163,18 @@ Hosted demo stack that stays free: **Neon** (Postgres, no credit card, no time l
 3. When prompted, set `ConnectionStrings__DefaultConnection` to the Neon URL.
 4. After deploy: `https://<your-service>.onrender.com/swagger` — login `cr.demo` / `ChangeMe123!`.
 
-### 3. Flutter against the hosted API
+### 3. Angular admin (Render static site)
+
+Full walkthrough: **[docs/hosting-admin-on-render.md](docs/hosting-admin-on-render.md)**
+
+Short version:
+
+1. Push this repo (includes `autopro-admin` in `render.yaml`, or add the static site manually — see the doc).
+2. Ensure the API is live (`https://<your-api>.onrender.com/swagger`).
+3. Open the Render URL for **`autopro-admin`** → sign in **`ao.demo`** / **`ChangeMe123!`**
+4. If your API hostname is not `autopro-api-qciu.onrender.com`, set build env **`API_BASE_URL`** on the static site and redeploy with clear build cache.
+
+### 4. Flutter against the hosted API
 
 ```powershell
 flutter run --dart-define=API_BASE_URL=https://<your-service>.onrender.com

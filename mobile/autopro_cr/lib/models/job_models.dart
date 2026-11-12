@@ -180,6 +180,8 @@ class JobPurchaseLine {
   JobPurchaseLine({
     required this.id,
     required this.source,
+    this.inventoryItemId,
+    this.inventoryPartNumber,
     required this.description,
     required this.quantity,
     required this.unitPrice,
@@ -190,6 +192,8 @@ class JobPurchaseLine {
   factory JobPurchaseLine.fromJson(Map<String, dynamic> json) => JobPurchaseLine(
         id: json['id'] as String,
         source: PurchaseSource.parse(json['source']),
+        inventoryItemId: json['inventoryItemId'] as String?,
+        inventoryPartNumber: json['inventoryPartNumber'] as String?,
         description: json['description'] as String,
         quantity: _toDecimal(json['quantity']),
         unitPrice: _toDecimal(json['unitPrice']),
@@ -199,6 +203,8 @@ class JobPurchaseLine {
 
   final String id;
   final PurchaseSource source;
+  final String? inventoryItemId;
+  final String? inventoryPartNumber;
   final String description;
   final double quantity;
   final double unitPrice;

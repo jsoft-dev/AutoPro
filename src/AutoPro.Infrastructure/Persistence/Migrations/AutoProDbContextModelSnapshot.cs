@@ -52,6 +52,52 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.InventoryItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PartNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<decimal>("QuantityOnHand")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("PartNumber");
+
+                    b.ToTable("InventoryItems");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.JobPurchaseLine", b =>
                 {
                     b.Property<Guid>("Id")
@@ -91,6 +137,8 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InventoryItemId");
 
                     b.HasIndex("ServiceJobId");
 
@@ -272,11 +320,17 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("AutoPro.Domain.Entities.JobPurchaseLine", b =>
                 {
+                    b.HasOne("AutoPro.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId");
+
                     b.HasOne("AutoPro.Domain.Entities.ServiceJob", "ServiceJob")
                         .WithMany("PurchaseLines")
                         .HasForeignKey("ServiceJobId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("InventoryItem");
 
                     b.Navigation("ServiceJob");
                 });

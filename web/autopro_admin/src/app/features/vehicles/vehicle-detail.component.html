@@ -1,0 +1,78 @@
+@if (loading()) {
+  <p class="muted">Loading vehicle…</p>
+} @else if (error() && !vehicle()) {
+  <div class="alert">{{ error() }}</div>
+  <a routerLink="/vehicles">Back to vehicles</a>
+} @else if (vehicle()) {
+  @let v = vehicle()!;
+  <div class="no-print">
+    <a class="back" routerLink="/vehicles">← Vehicles</a>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Vehicle QR</p>
+        <h1>{{ v.plateNumber }}</h1>
+        <p class="meta">
+          {{ vehicleSummary(v) }} · {{ v.customerName }} · {{ v.customerPhone }}
+        </p>
+      </div>
+    </header>
+
+    @if (error()) {
+      <div class="alert">{{ error() }}</div>
+    }
+
+    <div class="grid">
+      <section class="card qr-card">
+        <h2>Scan code</h2>
+        @if (qrDataUrl(); as src) {
+          <img class="qr-preview" [src]="src" width="200" height="200" alt="Vehicle QR code" />
+        }
+        <p class="payload mono">{{ v.qrPayload }}</p>
+        <button type="button" class="primary" (click)="printQr()" [disabled]="!qrDataUrl()">
+          Print QR label
+        </button>
+      </section>
+
+      <section class="card">
+        <h2>Details</h2>
+        <dl>
+          <div>
+            <dt>Customer</dt>
+            <dd>{{ v.customerName }}</dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>{{ v.customerPhone }}</dd>
+          </div>
+          @if (v.vin) {
+            <div>
+              <dt>VIN</dt>
+              <dd class="mono">{{ v.vin }}</dd>
+            </div>
+          }
+          <div>
+            <dt>Registered</dt>
+            <dd>{{ v.createdAtUtc | date: 'medium' }}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  </div>
+
+  @if (showPrint() && qrDataUrl(); as src) {
+    <article class="print-qr">
+      <header class="label-head">
+        <h1>AutoPro</h1>
+        <p>Vehicle QR — keep for future visits</p>
+      </header>
+      <p class="label-plate">{{ v.plateNumber }}</p>
+      @if (vehicleSummary(v) !== '—') {
+        <p class="label-vehicle">{{ vehicleSummary(v) }}</p>
+      }
+      <p class="label-customer">{{ v.customerName }} · {{ v.customerPhone }}</p>
+      <img class="label-qr" [src]="src" width="240" height="240" alt="" />
+      <p class="label-payload mono">{{ v.qrPayload }}</p>
+    </article>
+  }
+}

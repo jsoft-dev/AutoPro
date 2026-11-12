@@ -204,16 +204,54 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
         if (request.Source == PurchaseSource.ExternalVendor && string.IsNullOrWhiteSpace(request.VendorName))
             return BadRequest(new { message = "VendorName is required for external vendor purchases." });
 
+        if (request.Quantity <= 0)
+            return BadRequest(new { message = "Quantity must be greater than zero." });
+
+        InventoryItem? inventoryItem = null;
+        if (request.Source == PurchaseSource.Inventory)
+        {
+            if (request.InventoryItemId is null)
+                return BadRequest(new { message = "Select a part from shop inventory." });
+
+            inventoryItem = await db.InventoryItems
+                .FirstOrDefaultAsync(i => i.Id == request.InventoryItemId.Value && i.IsActive, ct);
+            if (inventoryItem is null)
+                return BadRequest(new { message = "That inventory part was not found or is inactive." });
+            if (inventoryItem.QuantityOnHand < request.Quantity)
+                return BadRequest(new
+                {
+                    message = $"Insufficient stock for {inventoryItem.PartNumber}. On hand: {inventoryItem.QuantityOnHand}."
+                });
+        }
+
+        var description = request.Description.Trim();
+        if (string.IsNullOrEmpty(description) && inventoryItem is not null)
+            description = inventoryItem.Name;
+        if (string.IsNullOrEmpty(description))
+            return BadRequest(new { message = "Description is required." });
+
+        var unitPrice = request.UnitPrice;
+        if (unitPrice < 0)
+            return BadRequest(new { message = "Unit price cannot be negative." });
+        if (unitPrice == 0 && inventoryItem is not null)
+            unitPrice = inventoryItem.UnitPrice;
+
+        if (inventoryItem is not null)
+        {
+            inventoryItem.QuantityOnHand -= request.Quantity;
+            inventoryItem.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
         db.JobPurchaseLines.Add(new JobPurchaseLine
         {
             Id = Guid.NewGuid(),
             ServiceJobId = job.Id,
             Source = request.Source,
-            InventoryItemId = request.InventoryItemId,
-            Description = request.Description.Trim(),
+            InventoryItemId = request.Source == PurchaseSource.Inventory ? request.InventoryItemId : null,
+            Description = description,
             Quantity = request.Quantity,
-            UnitPrice = request.UnitPrice,
-            VendorName = request.VendorName?.Trim(),
+            UnitPrice = unitPrice,
+            VendorName = request.Source == PurchaseSource.ExternalVendor ? request.VendorName?.Trim() : null,
             CreatedAtUtc = DateTime.UtcNow,
             AddedByUserId = CurrentUserId
         });
@@ -234,7 +272,7 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
     private Task<ServiceJob?> LoadJobForDetailAsync(Guid id, CancellationToken ct) =>
         db.ServiceJobs.AsNoTracking()
             .Include(j => j.Vehicle).ThenInclude(v => v.Customer)
-            .Include(j => j.PurchaseLines)
+            .Include(j => j.PurchaseLines).ThenInclude(p => p.InventoryItem)
             .Include(j => j.StatusHistory)
             .FirstOrDefaultAsync(j => j.Id == id, ct);
 
@@ -294,7 +332,15 @@ public class JobsController(AutoProDbContext db, JobNumberGenerator jobNumbers) 
             job.PurchaseLines
                 .OrderBy(p => p.CreatedAtUtc)
                 .Select(p => new JobPurchaseLineResponse(
-                    p.Id, p.Source, p.Description, p.Quantity, p.UnitPrice, p.VendorName, p.CreatedAtUtc))
+                    p.Id,
+                    p.Source,
+                    p.InventoryItemId,
+                    p.InventoryItem?.PartNumber,
+                    p.Description,
+                    p.Quantity,
+                    p.UnitPrice,
+                    p.VendorName,
+                    p.CreatedAtUtc))
                 .ToList(),
             job.StatusHistory
                 .OrderBy(h => h.ChangedAtUtc)

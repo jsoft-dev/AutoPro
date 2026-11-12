@@ -1,0 +1,115 @@
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.65rem;
+}
+
+.lede {
+  margin: 0.35rem 0 0;
+  color: var(--ap-muted);
+}
+
+.ghost {
+  border: 1px solid var(--ap-border);
+  background: var(--ap-card);
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--ap-text);
+  font-size: 0.9rem;
+}
+
+.card.form {
+  max-width: 520px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+  background: var(--ap-card);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+label span {
+  font-weight: 600;
+  color: var(--ap-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+input,
+textarea {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ap-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.wide {
+  width: 100%;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  text-transform: none;
+}
+
+.checkbox span {
+  text-transform: none;
+  font-weight: 500;
+  color: var(--ap-text);
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  margin-top: 0.5rem;
+}
+
+.primary {
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--ap-primary);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.muted {
+  color: var(--ap-muted);
+}
+
+.alert {
+  padding: 0.65rem 0.75rem;
+  background: #ffebee;
+  color: var(--ap-danger);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}

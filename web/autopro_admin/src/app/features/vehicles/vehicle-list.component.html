@@ -1,0 +1,66 @@
+<div class="page-header">
+  <div>
+    <h1>Vehicles</h1>
+    <p class="lede">Registered vehicles and QR codes for printing at the desk.</p>
+  </div>
+  <button type="button" class="ghost" (click)="load()" [disabled]="loading()">Refresh</button>
+</div>
+
+<form class="search" (submit)="onSearchSubmit($event)">
+  <input
+    type="search"
+    name="q"
+    placeholder="Plate, customer name, or phone"
+    [ngModel]="searchQuery()"
+    (ngModelChange)="searchQuery.set($event)"
+    autocomplete="off"
+  />
+  <button type="submit" class="ghost" [disabled]="loading()">Search</button>
+  @if (searchQuery().trim()) {
+    <button type="button" class="ghost" (click)="clearSearch()">Clear</button>
+  }
+</form>
+
+@if (error()) {
+  <div class="alert">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading vehicles…</p>
+} @else if (items().length === 0) {
+  <div class="empty">
+    <p>No vehicles found.</p>
+    <p class="muted">
+      New vehicles appear when a customer rep registers one on the mobile app.
+    </p>
+  </div>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Plate</th>
+          <th>Vehicle</th>
+          <th>Customer</th>
+          <th>Phone</th>
+          <th>Registered</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (v of items(); track v.id) {
+          <tr>
+            <td class="mono">{{ v.plateNumber }}</td>
+            <td>{{ vehicleSummary(v) }}</td>
+            <td>{{ v.customerName }}</td>
+            <td>{{ v.customerPhone }}</td>
+            <td>{{ v.createdAtUtc | date: 'medium' }}</td>
+            <td class="actions">
+              <a [routerLink]="['/vehicles', v.id]">QR &amp; print</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

@@ -11,6 +11,7 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
     public DbSet<ServiceJob> ServiceJobs => Set<ServiceJob>();
     public DbSet<JobPurchaseLine> JobPurchaseLines => Set<JobPurchaseLine>();
     public DbSet<JobStatusHistory> JobStatusHistories => Set<JobStatusHistory>();
+    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,6 +57,18 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedByUserId);
         });
 
+        modelBuilder.Entity<InventoryItem>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PartNumber).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.Property(x => x.QuantityOnHand).HasPrecision(18, 3);
+            e.Property(x => x.UnitPrice).HasPrecision(18, 2);
+            e.HasIndex(x => x.PartNumber);
+            e.HasIndex(x => x.IsActive);
+        });
+
         modelBuilder.Entity<JobPurchaseLine>(e =>
         {
             e.HasKey(x => x.Id);
@@ -64,6 +77,7 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
             e.Property(x => x.UnitPrice).HasPrecision(18, 2);
             e.Property(x => x.VendorName).HasMaxLength(200);
             e.HasOne(x => x.ServiceJob).WithMany(j => j.PurchaseLines).HasForeignKey(x => x.ServiceJobId);
+            e.HasOne(x => x.InventoryItem).WithMany().HasForeignKey(x => x.InventoryItemId);
         });
 
         modelBuilder.Entity<JobStatusHistory>(e =>

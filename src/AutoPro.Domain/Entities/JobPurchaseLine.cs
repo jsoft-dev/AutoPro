@@ -8,6 +8,7 @@ public class JobPurchaseLine
 
     public Enums.PurchaseSource Source { get; set; }
     public Guid? InventoryItemId { get; set; }
+    public InventoryItem? InventoryItem { get; set; }
     public string Description { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }

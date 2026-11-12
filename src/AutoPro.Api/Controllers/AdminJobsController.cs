@@ -65,7 +65,7 @@ public class AdminJobsController(AutoProDbContext db) : ControllerBase
     private Task<ServiceJob?> LoadJobForDetailAsync(Guid id, CancellationToken ct) =>
         db.ServiceJobs.AsNoTracking()
             .Include(j => j.Vehicle).ThenInclude(v => v.Customer)
-            .Include(j => j.PurchaseLines)
+            .Include(j => j.PurchaseLines).ThenInclude(p => p.InventoryItem)
             .Include(j => j.StatusHistory)
             .FirstOrDefaultAsync(j => j.Id == id, ct);
 
@@ -92,7 +92,15 @@ public class AdminJobsController(AutoProDbContext db) : ControllerBase
             job.PurchaseLines
                 .OrderBy(p => p.CreatedAtUtc)
                 .Select(p => new JobPurchaseLineResponse(
-                    p.Id, p.Source, p.Description, p.Quantity, p.UnitPrice, p.VendorName, p.CreatedAtUtc))
+                    p.Id,
+                    p.Source,
+                    p.InventoryItemId,
+                    p.InventoryItem?.PartNumber,
+                    p.Description,
+                    p.Quantity,
+                    p.UnitPrice,
+                    p.VendorName,
+                    p.CreatedAtUtc))
                 .ToList(),
             job.StatusHistory
                 .OrderBy(h => h.ChangedAtUtc)

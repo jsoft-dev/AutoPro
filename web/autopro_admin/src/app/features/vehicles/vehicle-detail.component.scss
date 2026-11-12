@@ -1,0 +1,160 @@
+.back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.hero {
+  margin-bottom: 1.25rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ap-muted);
+}
+
+.hero h1 {
+  margin: 0.25rem 0;
+  font-size: 1.75rem;
+}
+
+.meta {
+  margin: 0;
+  color: var(--ap-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  padding: 1.1rem 1.25rem;
+  background: var(--ap-card);
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+}
+
+.card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.qr-preview {
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.5rem;
+  border: 1px solid var(--ap-border);
+}
+
+.payload {
+  font-size: 0.75rem;
+  color: var(--ap-muted);
+  margin: 0.75rem 0 1rem;
+  word-break: break-all;
+}
+
+.mono {
+  font-family: ui-monospace, monospace;
+}
+
+dl {
+  margin: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ap-muted);
+}
+
+dd {
+  margin: 0.15rem 0 0;
+}
+
+.primary {
+  border: none;
+  background: var(--ap-primary);
+  color: #fff;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.muted {
+  color: var(--ap-muted);
+}
+
+.alert {
+  padding: 0.65rem 0.75rem;
+  background: #ffebee;
+  color: var(--ap-danger);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.print-qr {
+  display: none;
+}
+
+@media print {
+  .print-qr {
+    display: block;
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .label-head h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  .label-head p {
+    margin: 0.25rem 0 1rem;
+    color: #444;
+  }
+
+  .label-plate {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem;
+  }
+
+  .label-vehicle,
+  .label-customer {
+    margin: 0.25rem 0;
+    color: #333;
+  }
+
+  .label-qr {
+    margin: 1rem auto;
+    display: block;
+  }
+
+  .label-payload {
+    font-size: 0.65rem;
+    color: #666;
+    word-break: break-all;
+  }
+}

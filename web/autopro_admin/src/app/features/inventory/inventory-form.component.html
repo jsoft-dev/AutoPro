@@ -1,0 +1,62 @@
+<div class="page-header">
+  <div>
+    <h1>{{ createMode() ? 'Add part' : 'Edit part' }}</h1>
+    <p class="lede">
+      @if (createMode()) {
+        Stock added here is available on the mobile app when reps add shop purchases.
+      } @else {
+        Update pricing, on-hand quantity, or deactivate a part you no longer stock.
+      }
+    </p>
+  </div>
+  <a routerLink="/inventory" class="ghost">Back to list</a>
+</div>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  @if (error()) {
+    <div class="alert">{{ error() }}</div>
+  }
+
+  <form class="card form" (submit)="submit($event)">
+      <label>
+        <span>Part number</span>
+        <input type="text" name="partNumber" [(ngModel)]="partNumber" required autocomplete="off" />
+      </label>
+      <label>
+        <span>Name</span>
+        <input type="text" name="name" [(ngModel)]="name" required />
+      </label>
+      <label class="wide">
+        <span>Notes (optional)</span>
+        <textarea name="notes" rows="2" [(ngModel)]="notes"></textarea>
+      </label>
+      <div class="row">
+        <label>
+          <span>Quantity on hand</span>
+          <input
+            type="number"
+            name="quantityOnHand"
+            [(ngModel)]="quantityOnHand"
+            min="0"
+            step="0.001"
+            required
+          />
+        </label>
+        <label>
+          <span>Default unit price (LKR)</span>
+          <input type="number" name="unitPrice" [(ngModel)]="unitPrice" min="0" step="0.01" required />
+        </label>
+      </div>
+      <label class="checkbox">
+        <input type="checkbox" name="isActive" [(ngModel)]="isActive" />
+        <span>Active — visible in mobile inventory search</span>
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="primary" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : createMode() ? 'Create part' : 'Save changes' }}
+        </button>
+      </div>
+  </form>
+}

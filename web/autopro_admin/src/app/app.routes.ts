@@ -25,6 +25,32 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/jobs/job-detail.component').then((m) => m.JobDetailComponent),
       },
+      {
+        path: 'vehicles',
+        loadComponent: () =>
+          import('./features/vehicles/vehicle-list.component').then((m) => m.VehicleListComponent),
+      },
+      {
+        path: 'vehicles/:id',
+        loadComponent: () =>
+          import('./features/vehicles/vehicle-detail.component').then(
+            (m) => m.VehicleDetailComponent,
+          ),
+      },
+      {
+        path: 'inventory',
+        loadComponent: () =>
+          import('./features/inventory/inventory-list.component').then(
+            (m) => m.InventoryListComponent,
+          ),
+      },
+      {
+        path: 'inventory/:id',
+        loadComponent: () =>
+          import('./features/inventory/inventory-form.component').then(
+            (m) => m.InventoryFormComponent,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

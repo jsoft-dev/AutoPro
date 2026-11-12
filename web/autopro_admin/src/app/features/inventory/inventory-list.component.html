@@ -1,0 +1,79 @@
+<div class="page-header">
+  <div>
+    <h1>Shop inventory</h1>
+    <p class="lede">Parts kept on hand for customer reps to add to jobs from the mobile app.</p>
+  </div>
+  <hgroup class="actions">
+    <a routerLink="/inventory/new" class="btn-primary">Add part</a>
+    <button type="button" class="ghost" (click)="load()" [disabled]="loading()">Refresh</button>
+  </hgroup>
+</div>
+
+<form class="search" (submit)="onSearchSubmit($event)">
+  <input
+    type="search"
+    name="q"
+    placeholder="Part number or name"
+    [ngModel]="searchQuery()"
+    (ngModelChange)="searchQuery.set($event)"
+    autocomplete="off"
+  />
+  <button type="submit" class="ghost" [disabled]="loading()">Search</button>
+  @if (searchQuery().trim()) {
+    <button type="button" class="ghost" (click)="clearSearch()">Clear</button>
+  }
+  <label class="toggle">
+    <input type="checkbox" [checked]="showInactive()" (change)="toggleInactive()" />
+    Show inactive
+  </label>
+</form>
+
+@if (error()) {
+  <div class="alert">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading parts…</p>
+} @else if (items().length === 0) {
+  <div class="empty">
+    <p>No parts in stock yet.</p>
+    <p class="muted">
+      <a routerLink="/inventory/new">Add your first part</a> so reps can pick it on a job.
+    </p>
+  </div>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Part #</th>
+          <th>Name</th>
+          <th class="num">On hand</th>
+          <th class="num">Unit price</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of items(); track p.id) {
+          <tr [class.inactive]="!p.isActive">
+            <td class="mono">{{ p.partNumber }}</td>
+            <td>{{ p.name }}</td>
+            <td class="num">{{ p.quantityOnHand }}</td>
+            <td class="num">{{ p.unitPrice | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
+            <td>
+              @if (p.isActive) {
+                <span class="badge ok">Active</span>
+              } @else {
+                <span class="badge muted">Inactive</span>
+              }
+            </td>
+            <td class="actions">
+              <a [routerLink]="['/inventory', p.id]">Edit</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

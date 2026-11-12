@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../models/inventory_models.dart';
 import 'api_config.dart';
 import 'auth_session.dart';
 
@@ -133,6 +134,20 @@ class ApiClient {
     );
     _throwIfError(res);
     return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<List<InventorySearchItem>> searchInventory(String query) async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/api/v1/inventory/search').replace(
+        queryParameters: {'q': query.trim()},
+      ),
+      headers: _authHeaders(),
+    );
+    _throwIfError(res);
+    final body = jsonDecode(res.body) as List<dynamic>;
+    return body
+        .map((e) => InventorySearchItem.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Map<String, dynamic>> addJobPurchase(

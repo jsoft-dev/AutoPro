@@ -1,4 +1,4 @@
-# $0 demo: Neon Postgres (free, no expiry) + Render free web (Docker).
+# $0 demo: Neon Postgres (free, no expiry) + Render free web (Docker) + static admin.
 # Do not add Render's free Postgres here — it expires after ~30 days.
 services:
   - type: web
@@ -15,3 +15,17 @@ services:
         sync: false
       - key: Jwt__SigningKey
         generateValue: true
+
+  - type: web
+    name: autopro-admin
+    runtime: static
+    rootDir: web/autopro_admin
+    buildCommand: npm ci && npm run build:render
+    staticPublishPath: ./dist/autopro-admin/browser
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: API_BASE_URL
+        value: https://autopro-api-qciu.onrender.com

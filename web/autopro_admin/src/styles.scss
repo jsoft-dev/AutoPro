@@ -40,11 +40,14 @@ button {
   }
 
   .print-bill,
-  .print-bill * {
+  .print-bill *,
+  .print-qr,
+  .print-qr * {
     visibility: visible;
   }
 
-  .print-bill {
+  .print-bill,
+  .print-qr {
     position: absolute;
     left: 0;
     top: 0;

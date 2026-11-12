@@ -85,6 +85,9 @@
               <tr>
                 <td>
                   {{ line.description }}
+                  @if (line.inventoryPartNumber) {
+                    <span class="vendor">({{ line.inventoryPartNumber }})</span>
+                  }
                   @if (line.vendorName) {
                     <span class="vendor">({{ line.vendorName }})</span>
                   }
