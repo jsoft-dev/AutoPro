@@ -1,13 +1,15 @@
-# Host the Angular admin on Render (step by step)
+# Host the WebApp on Render (step by step)
 
-This guide deploys the **Administrative Officer** desk (`web/autopro_admin`) as a **free Render static site**, talking to the same hosted API as the Flutter app.
+This guide deploys **The WebApp** (`web/autopro_admin`) as a **free Render static site**, talking to the same hosted API as the Flutter app.
+
+On Render, the static site service is named **`autopro-admin`** in `render.yaml` (infrastructure name only—the product name is the WebApp).
 
 | Piece | Render type | URL pattern |
 |-------|-------------|-------------|
 | API | Web service (Docker) | `https://<api-name>.onrender.com` |
-| Admin UI | **Static site** | `https://<admin-name>.onrender.com` |
+| WebApp | **Static site** | `https://<webapp-service>.onrender.com` |
 
-The static site does **not** sleep. The API on the free tier **does** sleep after ~15 minutes idle (first request after that can take ~1 minute).
+The WebApp does **not** sleep. The API on the free tier **does** sleep after ~15 minutes idle (first request after that can take ~1 minute).
 
 ---
 
@@ -17,11 +19,11 @@ The static site does **not** sleep. The API on the free tier **does** sleep afte
 2. **Neon + API on Render** — follow [Free demo hosting](../README.md#free-demo-hosting-0--month) sections 1–2 if the API is not live yet.
 3. **Node.js LTS** locally (only if you want to verify the build yourself).
 
-Demo login for the desk: **`ao.demo`** / **`ChangeMe123!`**
+WebApp demo login: **`ao.demo`** / **`ChangeMe123!`**
 
 ---
 
-## Path A — New Blueprint (API + admin together)
+## Path A — New Blueprint (API + WebApp together)
 
 Use this when you have **not** deployed from `render.yaml` yet, or you are fine creating both services from the blueprint.
 
@@ -29,7 +31,7 @@ Use this when you have **not** deployed from `render.yaml` yet, or you are fine 
 
 ```bash
 git add .
-git commit -m "Add Render static site for Angular admin"
+git commit -m "Add Render static site for the WebApp"
 git push origin main
 ```
 
@@ -42,13 +44,13 @@ git push origin main
 3. Connect your **GitHub** account and select the **AutoPro** repository.
 4. Render reads root **`render.yaml`**. You should see **two** services:
    - `autopro-api` (Docker web)
-   - `autopro-admin` (static site)
+   - `autopro-admin` (WebApp static site)
 5. When prompted, set **`ConnectionStrings__DefaultConnection`** to your **Neon** connection string (append `;Ssl Mode=Require` if Neon did not include SSL).
 6. Click **Apply** / **Create**.
 
-### Step 3 — Set the API URL for the admin build (if yours is not the default)
+### Step 3 — Set the API URL for the WebApp build (if yours is not the default)
 
-The admin build bakes in the API URL at **build time**.
+The WebApp build bakes in the API URL at **build time**.
 
 - Default in blueprint: `https://autopro-api-qciu.onrender.com`
 - If your API service has a **different** hostname:
@@ -63,7 +65,7 @@ The admin build bakes in the API URL at **build time**.
 
 ### Step 5 — Smoke test
 
-1. Open the admin URL (e.g. `https://autopro-admin.onrender.com`).
+1. Open the WebApp URL (e.g. `https://autopro-admin.onrender.com`).
 2. Sign in: `ao.demo` / `ChangeMe123!`
 3. Open **Jobs**, **Vehicles**, **Inventory** — data should load.
 4. Refresh on a deep link (e.g. `/vehicles`) — should **not** 404 (SPA rewrite).
@@ -73,7 +75,7 @@ The admin build bakes in the API URL at **build time**.
 
 ## Path B — You already have the API on Render
 
-Use this when **`autopro-api` already exists** and you only need to add the admin.
+Use this when **`autopro-api` already exists** and you only need to add the WebApp.
 
 ### Option B1 — Resync Blueprint (recommended)
 
@@ -133,7 +135,7 @@ Open the built files with any static server, or use `npx serve dist/autopro-admi
 | Refresh on `/jobs` → **404** | Missing SPA rewrite | Add `/*` → `/index.html` rewrite (blueprint `routes` or dashboard). |
 | Login fails / network error | Wrong `API_BASE_URL` in bundle | Fix env var on static site, **clear cache & redeploy**. |
 | Slow or timeout on first action | API cold start | Wait ~1 min; wake API via `/swagger` first. |
-| CORS errors | Rare with this repo | API allows any origin in `Program.cs`; ensure admin uses **HTTPS** API URL, not `http://localhost`. |
+| CORS errors | Rare with this repo | API allows any origin in `Program.cs`; ensure the WebApp uses **HTTPS** API URL, not `http://localhost`. |
 | Build fails on Render | Node version | Render uses a supported Node LTS; run `npm ci && npm run build:render` locally to reproduce. |
 
 ---
@@ -148,7 +150,7 @@ Render → **autopro-admin** → **Settings** → **Custom Domains** → follow 
 
 | Service | Free tier |
 |---------|-----------|
-| `autopro-admin` (static) | $0 — CDN, no sleep |
+| `autopro-admin` (WebApp) | $0 — CDN, no sleep |
 | `autopro-api` (Docker) | $0 — sleeps when idle |
 | Neon Postgres | $0 — see Neon limits |
 

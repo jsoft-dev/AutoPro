@@ -1,4 +1,4 @@
-# $0 demo: Neon Postgres (free, no expiry) + Render free web (Docker) + static admin.
+# $0 demo: Neon Postgres (free, no expiry) + Render API (Docker) + WebApp static site.
 # Do not add Render's free Postgres here — it expires after ~30 days.
 services:
   - type: web

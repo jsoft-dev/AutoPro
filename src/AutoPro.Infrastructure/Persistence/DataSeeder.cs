@@ -27,7 +27,7 @@ public static class DataSeeder
                 {
                     Id = Guid.Parse("11111111-1111-1111-1111-111111111002"),
                     UserName = "ao.demo",
-                    DisplayName = "Demo Admin Officer",
+                    DisplayName = "Demo Officer",
                     Role = UserRole.AdministrativeOfficer,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("ChangeMe123!"),
                     IsActive = true
@@ -41,7 +41,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("11111111-1111-1111-1111-111111111002"),
                 UserName = "ao.demo",
-                DisplayName = "Demo Admin Officer",
+                DisplayName = "Demo Officer",
                 Role = UserRole.AdministrativeOfficer,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("ChangeMe123!"),
                 IsActive = true

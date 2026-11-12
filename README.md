@@ -1,6 +1,6 @@
 # AutoPro
 
-Auto service station management — **phase 1**: Customer Representative (Flutter) + **Administrative Officer** (Angular) + .NET API + PostgreSQL.
+Auto service station management — **phase 1**: Customer Representative (Flutter) + **The WebApp** (Angular) + .NET API + PostgreSQL.
 
 ## Decisions locked in
 
@@ -13,13 +13,13 @@ Auto service station management — **phase 1**: Customer Representative (Flutte
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - **PostgreSQL** (local install or Docker — see below)
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (for mobile)
-- [Node.js LTS](https://nodejs.org/) + Angular CLI (`npm i -g @angular/cli`) for the admin desk app
+- [Node.js LTS](https://nodejs.org/) + Angular CLI (`npm i -g @angular/cli`) for the WebApp
 
 ## Quick start
 
 ### Dev launcher (optional)
 
-Opens a local web UI (in your browser) to start/stop the API, Angular admin, and Flutter app:
+Opens a local web UI (in your browser) to start/stop the API, WebApp, and Flutter app:
 
 ```bash
 python3 tools/dev-launcher/launcher.py
@@ -58,11 +58,11 @@ dotnet run --project src\AutoPro.Api\AutoPro.Api.csproj
 
 Swagger: http://localhost:5080/swagger
 
-**Demo logins:** `cr.demo` / `ChangeMe123!` (customer rep), `ao.demo` / `ChangeMe123!` (admin officer)
+**Demo logins:** `cr.demo` / `ChangeMe123!` (customer rep), `ao.demo` / `ChangeMe123!` (WebApp)
 
 On first run, EF migrations apply and the demo CR user is seeded.
 
-### 3. Angular (Administrative Officer)
+### 3. WebApp (Angular)
 
 ```bash
 cd web/autopro_admin
@@ -70,7 +70,7 @@ npm install
 npm start
 ```
 
-Desk UI: http://localhost:4200 — sign in as `ao.demo`.
+The WebApp: http://localhost:4200 — sign in as `ao.demo`.
 
 Set the API URL in `src/environments/environment.ts` (default `http://localhost:5080`).
 
@@ -147,9 +147,9 @@ Hosted demo stack that stays free: **Neon** (Postgres, no credit card, no time l
 
 | Cost | What |
 |------|------|
-| **$0** | Neon DB + Render API + Render static admin |
+| **$0** | Neon DB + Render API + WebApp (Render static site) |
 | **$0** | No card required for Neon; Render free tier usually works without a card (they may ask for verification in some regions) |
-| **Catch** | Render **API** sleeps after 15 min idle (~1 min wake-up; first request after sleep can feel slow). The **admin static site** does not sleep. |
+| **Catch** | Render **API** sleeps after 15 min idle (~1 min wake-up; first request after sleep can feel slow). The **WebApp** static site does not sleep. |
 
 ### 1. Database (Neon)
 
@@ -163,15 +163,15 @@ Hosted demo stack that stays free: **Neon** (Postgres, no credit card, no time l
 3. When prompted, set `ConnectionStrings__DefaultConnection` to the Neon URL.
 4. After deploy: `https://<your-service>.onrender.com/swagger` — login `cr.demo` / `ChangeMe123!`.
 
-### 3. Angular admin (Render static site)
+### 3. WebApp on Render (static site)
 
-Full walkthrough: **[docs/hosting-admin-on-render.md](docs/hosting-admin-on-render.md)**
+Full walkthrough: **[docs/hosting-webapp-on-render.md](docs/hosting-webapp-on-render.md)**
 
 Short version:
 
-1. Push this repo (includes `autopro-admin` in `render.yaml`, or add the static site manually — see the doc).
+1. Push this repo (includes the WebApp as `autopro-admin` in `render.yaml`, or add the static site manually — see the doc).
 2. Ensure the API is live (`https://<your-api>.onrender.com/swagger`).
-3. Open the Render URL for **`autopro-admin`** → sign in **`ao.demo`** / **`ChangeMe123!`**
+3. Open the WebApp Render URL (service **`autopro-admin`**) → sign in **`ao.demo`** / **`ChangeMe123!`**
 4. If your API hostname is not `autopro-api-qciu.onrender.com`, set build env **`API_BASE_URL`** on the static site and redeploy with clear build cache.
 
 ### 4. Flutter against the hosted API
@@ -199,7 +199,7 @@ AutoPro/
     AutoPro.Domain/
     AutoPro.Infrastructure/
   mobile/autopro_cr/    # Flutter CR app
-  web/autopro_admin/    # Angular Administrative Officer desk
+  web/autopro_admin/    # The WebApp (Angular)
 ```
 
 ## Next (in-repo backlog)

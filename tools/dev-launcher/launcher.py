@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AutoPro local dev launcher — browser UI for .NET API, Angular admin, and Flutter CR."""
+"""AutoPro local dev launcher — browser UI for .NET API, WebApp, and Flutter CR."""
 
 from __future__ import annotations
 
@@ -285,8 +285,8 @@ class DevLauncher:
             ),
             "admin": ServiceSpec(
                 key="admin",
-                title="Angular Admin",
-                subtitle="Administrative Officer desk",
+                title="WebApp",
+                subtitle="The WebApp — jobs, vehicles, inventory",
                 url="http://localhost:4200",
                 check_running=lambda: web_dev_server_up(
                     4200,

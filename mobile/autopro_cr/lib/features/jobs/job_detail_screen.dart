@@ -86,8 +86,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               children: [
                 Text(
                   target == JobStatus.cancelled
-                      ? 'This job will be marked cancelled. The admin office can still see it in records.'
-                      : 'Work is finished. An admin officer will handle payment and closing later.',
+                      ? 'This job will be marked cancelled. The WebApp can still see it in records.'
+                      : 'Work is finished. Payment and closing happen later on the WebApp.',
                 ),
                 const SizedBox(height: 12),
                 TextField(
