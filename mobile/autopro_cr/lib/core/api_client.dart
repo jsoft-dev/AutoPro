@@ -66,7 +66,8 @@ class ApiClient {
 
   Future<Map<String, dynamic>> createVehicle({
     required String customerId,
-    required String plateNumber,
+    required String platePrefix,
+    required String plateSuffix,
     String? vin,
     String? make,
     String? model,
@@ -79,7 +80,8 @@ class ApiClient {
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
-        'plateNumber': plateNumber,
+        'platePrefix': platePrefix.trim().toUpperCase(),
+        'plateSuffix': plateSuffix.trim(),
         'vin': vin,
         'make': make,
         'model': model,
@@ -90,10 +92,16 @@ class ApiClient {
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> getVehicleByPlate(String plate) async {
+  Future<Map<String, dynamic>> getVehicleByPlateParts({
+    required String platePrefix,
+    required String plateSuffix,
+  }) async {
     final res = await http.get(
       Uri.parse('$baseUrl/api/v1/vehicles/by-plate').replace(
-        queryParameters: {'plate': plate.trim()},
+        queryParameters: {
+          'prefix': platePrefix.trim().toUpperCase(),
+          'suffix': plateSuffix.trim(),
+        },
       ),
       headers: _authHeaders(),
     );

@@ -1,7 +1,8 @@
 namespace AutoPro.Application.Contracts.Vehicles;
 
 public record CreateVehicleRequest(
-    string PlateNumber,
+    string PlatePrefix,
+    string PlateSuffix,
     string? Vin,
     string? Make,
     string? Model,

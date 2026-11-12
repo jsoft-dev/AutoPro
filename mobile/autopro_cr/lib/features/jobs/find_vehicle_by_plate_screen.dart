@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_session.dart';
+import '../../core/plate_number.dart';
 import '../../widgets/inline_error.dart';
+import '../../widgets/plate_number_input.dart';
 import '../registration/register_vehicle_screen.dart';
 
 class FindVehicleByPlateScreen extends StatefulWidget {
@@ -16,7 +17,8 @@ class FindVehicleByPlateScreen extends StatefulWidget {
 }
 
 class _FindVehicleByPlateScreenState extends State<FindVehicleByPlateScreen> {
-  final _plateController = TextEditingController();
+  final _platePrefixController = TextEditingController();
+  final _plateSuffixController = TextEditingController();
   late final ApiClient _api = ApiClient(widget.session);
   bool _loading = false;
   String? _error;
@@ -25,14 +27,23 @@ class _FindVehicleByPlateScreenState extends State<FindVehicleByPlateScreen> {
 
   @override
   void dispose() {
-    _plateController.dispose();
+    _platePrefixController.dispose();
+    _plateSuffixController.dispose();
     super.dispose();
   }
 
+  String get _formattedPlate => PlateNumberParts(
+        prefix: _platePrefixController.text.trim(),
+        suffix: _plateSuffixController.text.trim(),
+      ).formatted;
+
   Future<void> _search() async {
-    final plate = _plateController.text.trim();
-    if (plate.isEmpty) {
-      setState(() => _error = 'Enter the vehicle registration number.');
+    final message = PlateNumberParts.validationMessage(
+      _platePrefixController.text,
+      _plateSuffixController.text,
+    );
+    if (message != null) {
+      setState(() => _error = message);
       return;
     }
 
@@ -43,13 +54,18 @@ class _FindVehicleByPlateScreenState extends State<FindVehicleByPlateScreen> {
       _vehicle = null;
     });
     try {
-      final v = await _api.getVehicleByPlate(plate);
+      final v = await _api.getVehicleByPlateParts(
+        platePrefix: _platePrefixController.text.trim(),
+        plateSuffix: _plateSuffixController.text.trim(),
+      );
       setState(() => _vehicle = v);
     } catch (e) {
       final notFound = e is ApiException && e.statusCode == 404;
       setState(() {
         _notFound = notFound;
-        _error = notFound ? 'No vehicle with plate “$plate” is registered yet.' : e.toString();
+        _error = notFound
+            ? 'No vehicle with plate “$_formattedPlate” is registered yet.'
+            : e.toString();
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -80,19 +96,9 @@ class _FindVehicleByPlateScreenState extends State<FindVehicleByPlateScreen> {
               style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
-            TextField(
-              controller: _plateController,
-              textCapitalization: TextCapitalization.characters,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9\- ]')),
-              ],
-              decoration: const InputDecoration(
-                labelText: 'Registration number',
-                hintText: 'e.g. CAB-1234',
-                prefixIcon: Icon(Icons.pin_outlined),
-              ),
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _search(),
+            PlateNumberInput(
+              prefixController: _platePrefixController,
+              suffixController: _plateSuffixController,
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
@@ -114,16 +120,16 @@ class _FindVehicleByPlateScreenState extends State<FindVehicleByPlateScreen> {
                 FilledButton.tonalIcon(
                   onPressed: () async {
                     final nav = Navigator.of(context);
-                    final v = await nav.push<Map<String, dynamic>>(
+                    final result = await nav.push<Map<String, dynamic>>(
                       MaterialPageRoute(
                         builder: (_) => RegisterVehicleScreen(
                           session: widget.session,
-                          initialPlate: _plateController.text.trim(),
+                          initialPlate: _formattedPlate,
                         ),
                       ),
                     );
-                    if (v != null && context.mounted) {
-                      nav.pop(v);
+                    if (result != null && context.mounted) {
+                      nav.pop(result);
                     }
                   },
                   icon: const Icon(Icons.person_add_alt_1_outlined),
@@ -144,7 +150,7 @@ class _FindVehicleByPlateScreenState extends State<FindVehicleByPlateScreen> {
                           child: Icon(Icons.directions_car, color: scheme.onPrimaryContainer),
                         ),
                         title: Text(
-                          v['plateNumber']?.toString() ?? '',
+                          v['plateNumber']?.toString() ?? _formattedPlate,
                           style: theme.textTheme.titleLarge,
                         ),
                         subtitle: Text(_makeModel(v)),

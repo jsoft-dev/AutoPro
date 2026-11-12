@@ -27,6 +27,8 @@ public class AdminVehiclesController(AutoProDbContext db) : ControllerBase
             var plateTerm = term.ToUpperInvariant();
             query = query.Where(v =>
                 v.PlateNumber.Contains(plateTerm) ||
+                v.PlatePrefix.Contains(plateTerm) ||
+                v.PlateSuffix.Contains(term) ||
                 EF.Functions.ILike(v.Customer.FullName, $"%{term}%") ||
                 v.Customer.Phone.Contains(term));
         }
@@ -54,6 +56,8 @@ public class AdminVehiclesController(AutoProDbContext db) : ControllerBase
     private static VehicleAdminListItemResponse ToListItem(Domain.Entities.Vehicle vehicle) =>
         new(
             vehicle.Id,
+            vehicle.PlatePrefix,
+            vehicle.PlateSuffix,
             vehicle.PlateNumber,
             vehicle.Make,
             vehicle.Model,
@@ -66,6 +70,8 @@ public class AdminVehiclesController(AutoProDbContext db) : ControllerBase
     private static VehicleAdminDetailResponse ToDetail(Domain.Entities.Vehicle vehicle) =>
         new(
             vehicle.Id,
+            vehicle.PlatePrefix,
+            vehicle.PlateSuffix,
             vehicle.PlateNumber,
             vehicle.Vin,
             vehicle.Make,

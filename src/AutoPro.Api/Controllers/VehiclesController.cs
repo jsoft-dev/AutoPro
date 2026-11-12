@@ -1,4 +1,5 @@
 using AutoPro.Application.Contracts.Vehicles;
+using AutoPro.Application.Vehicles;
 using AutoPro.Domain.Entities;
 using AutoPro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +13,7 @@ namespace AutoPro.Api.Controllers;
 [Route("api/v1/vehicles")]
 public class VehiclesController(AutoProDbContext db) : ControllerBase
 {
-  public const string QrPayloadPrefix = "autopro://v/";
+    public const string QrPayloadPrefix = "autopro://v/";
 
     [HttpGet("by-qr/{token}")]
     public async Task<ActionResult<VehicleQrLookupResponse>> GetByQr(string token, CancellationToken ct)
@@ -30,16 +31,21 @@ public class VehiclesController(AutoProDbContext db) : ControllerBase
 
     [HttpGet("by-plate")]
     public async Task<ActionResult<VehicleQrLookupResponse>> GetByPlate(
-        [FromQuery] string plate,
+        [FromQuery] string? plate,
+        [FromQuery] string? prefix,
+        [FromQuery] string? suffix,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(plate))
-            return BadRequest(new { message = "Registration number is required." });
+        if (!PlateNumber.TryResolve(plate, prefix, suffix, out var platePrefix, out var plateSuffix, out var error))
+            return BadRequest(new { message = error });
 
-        var normalized = plate.Trim().ToUpperInvariant();
+        var formatted = PlateNumber.Format(platePrefix, plateSuffix);
         var vehicle = await db.Vehicles.AsNoTracking()
             .Include(v => v.Customer)
-            .FirstOrDefaultAsync(v => v.PlateNumber == normalized, ct);
+            .FirstOrDefaultAsync(
+                v => v.PlatePrefix == platePrefix && v.PlateSuffix == plateSuffix
+                     || v.PlateNumber == formatted,
+                ct);
 
         if (vehicle is null)
             return NotFound(new { message = "No vehicle with that registration number." });
@@ -50,6 +56,8 @@ public class VehiclesController(AutoProDbContext db) : ControllerBase
     private static VehicleQrLookupResponse ToLookup(Vehicle vehicle) =>
         new(
             vehicle.Id,
+            vehicle.PlatePrefix,
+            vehicle.PlateSuffix,
             vehicle.PlateNumber,
             vehicle.Make,
             vehicle.Model,
@@ -67,13 +75,30 @@ public class VehiclesController(AutoProDbContext db) : ControllerBase
         var exists = await db.Customers.AnyAsync(c => c.Id == customerId, ct);
         if (!exists) return NotFound(new { message = "Customer not found." });
 
+        if (!PlateNumber.TryNormalizeParts(
+                request.PlatePrefix,
+                request.PlateSuffix,
+                out var platePrefix,
+                out var plateSuffix,
+                out var error))
+            return BadRequest(new { message = error });
+
+        var plateNumber = PlateNumber.Format(platePrefix, plateSuffix);
+
+        var duplicate = await db.Vehicles.AnyAsync(
+            v => v.PlatePrefix == platePrefix && v.PlateSuffix == plateSuffix, ct);
+        if (duplicate)
+            return Conflict(new { message = $"Vehicle {plateNumber} is already registered." });
+
         var qrToken = Guid.NewGuid().ToString("N");
         var vehicle = new Vehicle
         {
             Id = Guid.NewGuid(),
             CustomerId = customerId,
             QrToken = qrToken,
-            PlateNumber = request.PlateNumber.Trim().ToUpperInvariant(),
+            PlatePrefix = platePrefix,
+            PlateSuffix = plateSuffix,
+            PlateNumber = plateNumber,
             Vin = request.Vin?.Trim(),
             Make = request.Make?.Trim(),
             Model = request.Model?.Trim(),

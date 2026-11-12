@@ -1,5 +1,7 @@
 export interface VehicleListItem {
   id: string;
+  platePrefix: string;
+  plateSuffix: string;
   plateNumber: string;
   make: string | null;
   model: string | null;

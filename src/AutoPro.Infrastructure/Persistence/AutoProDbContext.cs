@@ -28,12 +28,15 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.QrToken).HasMaxLength(64).IsRequired();
+            e.Property(x => x.PlatePrefix).HasMaxLength(8).IsRequired();
+            e.Property(x => x.PlateSuffix).HasMaxLength(8).IsRequired();
             e.Property(x => x.PlateNumber).HasMaxLength(32).IsRequired();
             e.Property(x => x.Vin).HasMaxLength(32);
             e.Property(x => x.Make).HasMaxLength(64);
             e.Property(x => x.Model).HasMaxLength(64);
             e.HasIndex(x => x.QrToken).IsUnique();
             e.HasIndex(x => x.PlateNumber);
+            e.HasIndex(x => new { x.PlatePrefix, x.PlateSuffix }).IsUnique();
             e.HasOne(x => x.Customer).WithMany(c => c.Vehicles).HasForeignKey(x => x.CustomerId);
         });
 

@@ -294,6 +294,16 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("PlatePrefix")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("PlateSuffix")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
                     b.Property<string>("QrToken")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -313,6 +323,9 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.HasIndex("PlateNumber");
 
                     b.HasIndex("QrToken")
+                        .IsUnique();
+
+                    b.HasIndex("PlatePrefix", "PlateSuffix")
                         .IsUnique();
 
                     b.ToTable("Vehicles");

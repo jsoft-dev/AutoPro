@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_session.dart';
+import '../../core/plate_number.dart';
 import '../../widgets/inline_error.dart';
+import '../../widgets/plate_number_input.dart';
 import 'widgets/vehicle_qr_display.dart';
 
 class RegisterVehicleScreen extends StatefulWidget {
@@ -34,7 +36,8 @@ class _RegisterVehicleScreenState extends State<RegisterVehicleScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
 
-  final _plateController = TextEditingController();
+  final _platePrefixController = TextEditingController();
+  final _plateSuffixController = TextEditingController();
   final _vinController = TextEditingController();
   final _makeController = TextEditingController();
   final _modelController = TextEditingController();
@@ -50,8 +53,10 @@ class _RegisterVehicleScreenState extends State<RegisterVehicleScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialPlate != null) {
-      _plateController.text = widget.initialPlate!;
+    final initial = PlateNumberParts.tryParse(widget.initialPlate);
+    if (initial != null) {
+      _platePrefixController.text = initial.prefix;
+      _plateSuffixController.text = initial.suffix;
     }
   }
 
@@ -62,7 +67,8 @@ class _RegisterVehicleScreenState extends State<RegisterVehicleScreen> {
     _fullNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _plateController.dispose();
+    _platePrefixController.dispose();
+    _plateSuffixController.dispose();
     _vinController.dispose();
     _makeController.dispose();
     _modelController.dispose();
@@ -121,12 +127,21 @@ class _RegisterVehicleScreenState extends State<RegisterVehicleScreen> {
   }
 
   bool _validateVehicleStep() {
-    if (_plateController.text.trim().isEmpty) {
-      setState(() => _error = 'Registration number is required.');
+    final message = PlateNumberParts.validationMessage(
+      _platePrefixController.text,
+      _plateSuffixController.text,
+    );
+    if (message != null) {
+      setState(() => _error = message);
       return false;
     }
     return true;
   }
+
+  String get _formattedPlate => PlateNumberParts(
+        prefix: _platePrefixController.text.trim(),
+        suffix: _plateSuffixController.text.trim(),
+      ).formatted;
 
   Future<void> _submitRegistration() async {
     if (!_validateVehicleStep()) return;
@@ -159,16 +174,23 @@ class _RegisterVehicleScreenState extends State<RegisterVehicleScreen> {
       final yearText = _yearController.text.trim();
       final year = yearText.isEmpty ? null : int.tryParse(yearText);
 
+      final platePrefix = _platePrefixController.text.trim();
+      final plateSuffix = _plateSuffixController.text.trim();
+
       final vehicle = await _api.createVehicle(
         customerId: customerId,
-        plateNumber: _plateController.text.trim(),
+        platePrefix: platePrefix,
+        plateSuffix: plateSuffix,
         vin: _vinController.text.trim().isEmpty ? null : _vinController.text.trim(),
         make: _makeController.text.trim().isEmpty ? null : _makeController.text.trim(),
         model: _modelController.text.trim().isEmpty ? null : _modelController.text.trim(),
         year: year,
       );
 
-      final lookup = await _api.getVehicleByPlate(_plateController.text.trim());
+      final lookup = await _api.getVehicleByPlateParts(
+        platePrefix: platePrefix,
+        plateSuffix: plateSuffix,
+      );
 
       setState(() {
         _qrPayload = vehicle['qrPayload'] as String?;
@@ -290,7 +312,8 @@ class _RegisterVehicleScreenState extends State<RegisterVehicleScreen> {
             isActive: _step >= 1,
             state: _step > 1 ? StepState.complete : (_step == 1 ? StepState.indexed : StepState.disabled),
             content: _VehicleStep(
-              plateController: _plateController,
+              platePrefixController: _platePrefixController,
+              plateSuffixController: _plateSuffixController,
               vinController: _vinController,
               makeController: _makeController,
               modelController: _modelController,
@@ -306,7 +329,7 @@ class _RegisterVehicleScreenState extends State<RegisterVehicleScreen> {
                 ? const SizedBox.shrink()
                 : VehicleQrDisplay(
                     qrPayload: _qrPayload!,
-                    plateNumber: _plateController.text.trim(),
+                    plateNumber: _formattedPlate,
                   ),
           ),
         ],
@@ -437,14 +460,16 @@ class _CustomerStep extends StatelessWidget {
 
 class _VehicleStep extends StatelessWidget {
   const _VehicleStep({
-    required this.plateController,
+    required this.platePrefixController,
+    required this.plateSuffixController,
     required this.vinController,
     required this.makeController,
     required this.modelController,
     required this.yearController,
   });
 
-  final TextEditingController plateController;
+  final TextEditingController platePrefixController;
+  final TextEditingController plateSuffixController;
   final TextEditingController vinController;
   final TextEditingController makeController;
   final TextEditingController modelController;
@@ -455,16 +480,9 @@ class _VehicleStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          controller: plateController,
-          textCapitalization: TextCapitalization.characters,
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9\- ]')),
-          ],
-          decoration: const InputDecoration(
-            labelText: 'Registration number',
-            prefixIcon: Icon(Icons.pin_outlined),
-          ),
+        PlateNumberInput(
+          prefixController: platePrefixController,
+          suffixController: plateSuffixController,
         ),
         const SizedBox(height: 12),
         TextField(
