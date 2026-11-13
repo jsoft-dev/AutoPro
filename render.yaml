@@ -28,4 +28,4 @@ services:
         destination: /index.html
     envVars:
       - key: API_BASE_URL
-        value: https://autopro-api-qciu.onrender.com
+        value: https://autopro-api-6mkp.onrender.com

@@ -25,7 +25,7 @@ LAUNCHER_DIR = Path(__file__).resolve().parent
 LAUNCHER_PORT = 8765
 POLL_SECONDS = 2
 MOBILE_DIR = REPO_ROOT / "mobile" / "autopro_cr"
-HOSTED_API_URL = "https://autopro-api-qciu.onrender.com"
+HOSTED_API_URL = "https://autopro-api-6mkp.onrender.com"
 APK_OUTPUT = MOBILE_DIR / "build" / "app" / "outputs" / "flutter-apk" / "app-release.apk"
 
 _EXTRA_PATH_DIRS = [

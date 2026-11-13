@@ -5,13 +5,13 @@
 ///
 /// | Target | Typical `API_BASE_URL` |
 /// |---|---|
-/// | Production / physical phone | `https://autopro-api-qciu.onrender.com` |
+/// | Production / physical phone | `https://autopro-api-6mkp.onrender.com` |
 /// | Android emulator + local API | `http://10.0.2.2:5080` |
 /// | Windows / iOS simulator | `http://localhost:5080` |
 class ApiConfig {
   static const String defaultBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://autopro-api-qciu.onrender.com',
+    defaultValue: 'https://autopro-api-6mkp.onrender.com',
   );
 
   /// Normalizes [defaultBaseUrl] (strips trailing slashes).

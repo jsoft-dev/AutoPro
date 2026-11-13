@@ -52,7 +52,7 @@ git push origin main
 
 The WebApp build bakes in the API URL at **build time**.
 
-- Default in blueprint: `https://autopro-api-qciu.onrender.com`
+- Default in blueprint: `https://autopro-api-6mkp.onrender.com`
 - If your API service has a **different** hostname:
   1. Render → **autopro-admin** → **Environment**
   2. Edit **`API_BASE_URL`** → `https://<your-api-service>.onrender.com`
@@ -121,7 +121,7 @@ To change only the API URL: update **`API_BASE_URL`** on the static site and **C
 ```bash
 cd web/autopro_admin
 npm ci
-API_BASE_URL=https://autopro-api-qciu.onrender.com npm run build:render
+API_BASE_URL=https://autopro-api-6mkp.onrender.com npm run build:render
 ```
 
 Open the built files with any static server, or use `npx serve dist/autopro-admin/browser` and test login against the hosted API.

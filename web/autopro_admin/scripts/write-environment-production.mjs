@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const apiBaseUrl =
-  process.env.API_BASE_URL?.trim() || 'https://autopro-api-qciu.onrender.com';
+  process.env.API_BASE_URL?.trim() || 'https://autopro-api-6mkp.onrender.com';
 
 const target = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'environments', 'environment.production.ts');
 

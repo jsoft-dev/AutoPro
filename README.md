@@ -93,7 +93,7 @@ flutter run
 
 `flutter create .` adds Android/iOS platform folders if this repo was scaffolded without them.
 
-**API URL:** default in `lib/core/api_config.dart` is the hosted API (`https://autopro-api-qciu.onrender.com`). Override for local dev:
+**API URL:** default in `lib/core/api_config.dart` is the hosted API (`https://autopro-api-6mkp.onrender.com`). Override for local dev:
 
 ```powershell
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
@@ -101,7 +101,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
 
 | Device | Typical `API_BASE_URL` |
 |--------|-------------------------|
-| Physical phone / release APK | `https://autopro-api-qciu.onrender.com` (default) |
+| Physical phone / release APK | `https://autopro-api-6mkp.onrender.com` (default) |
 | Android emulator + local API | `http://10.0.2.2:5080` |
 | Windows / iOS simulator | `http://localhost:5080` |
 
@@ -118,7 +118,7 @@ Release APK path: `mobile\autopro_cr\build\app\outputs\flutter-apk\app-release.a
 Optional fat APK with explicit API (same as default):
 
 ```powershell
-flutter build apk --release --dart-define=API_BASE_URL=https://autopro-api-qciu.onrender.com
+flutter build apk --release --dart-define=API_BASE_URL=https://autopro-api-6mkp.onrender.com
 ```
 
 Copy the APK to the phone and install (enable “Install unknown apps” if sideloading). First request after Render sleep may take ~1 minute.
@@ -172,7 +172,7 @@ Short version:
 1. Push this repo (includes the WebApp as `autopro-admin` in `render.yaml`, or add the static site manually — see the doc).
 2. Ensure the API is live (`https://<your-api>.onrender.com/swagger`).
 3. Open the WebApp Render URL (service **`autopro-admin`**) → sign in **`ao.demo`** / **`ChangeMe123!`**
-4. If your API hostname is not `autopro-api-qciu.onrender.com`, set build env **`API_BASE_URL`** on the static site and redeploy with clear build cache.
+4. If your API hostname is not `autopro-api-6mkp.onrender.com`, set build env **`API_BASE_URL`** on the static site and redeploy with clear build cache.
 
 ### 4. Flutter against the hosted API
 
