@@ -200,7 +200,7 @@ class _RegisterVehicleScreenState extends State<RegisterVehicleScreen> {
         _step = 2;
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = userFacingError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -25,9 +25,11 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
   final _odoController = TextEditingController();
   final _notesController = TextEditingController();
   final _otherJobTypeController = TextEditingController();
+  final _otherServiceChargeController = TextEditingController();
   bool _loading = false;
   String? _error;
   Map<String, dynamic>? _resolvedVehicle;
+  int? _lastRecordedOdometerKm;
   ServiceJobType _jobType = ServiceJobType.wash;
 
   late final ApiClient _api = ApiClient(widget.session);
@@ -45,14 +47,23 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
       final vehicleId = widget.vehicle['vehicleId'];
       if (token != null) {
         final v = await _api.getVehicleByQr(token);
-        setState(() => _resolvedVehicle = v);
+        setState(() {
+          _resolvedVehicle = v;
+          _lastRecordedOdometerKm = v['lastRecordedOdometerKm'] as int?;
+        });
       } else if (vehicleId != null) {
-        setState(() => _resolvedVehicle = widget.vehicle);
+        setState(() {
+          _resolvedVehicle = widget.vehicle;
+          _lastRecordedOdometerKm = widget.vehicle['lastRecordedOdometerKm'] as int?;
+        });
       } else {
-        setState(() => _resolvedVehicle = widget.vehicle);
+        setState(() {
+          _resolvedVehicle = widget.vehicle;
+          _lastRecordedOdometerKm = widget.vehicle['lastRecordedOdometerKm'] as int?;
+        });
       }
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = userFacingError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -66,10 +77,23 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
     int? odo;
     final odoText = _odoController.text.trim();
     if (odoText.isNotEmpty) odo = int.tryParse(odoText);
-
     final otherText = _otherJobTypeController.text.trim();
     final jobTypeOther =
         _jobType == ServiceJobType.other ? otherText : null;
+
+    double? customCharge;
+    if (_jobType == ServiceJobType.other) {
+      final chargeText = _otherServiceChargeController.text.trim();
+      if (chargeText.isEmpty) {
+        setState(() => _error = 'Enter a service charge for this custom job type.');
+        return;
+      }
+      customCharge = double.tryParse(chargeText);
+      if (customCharge == null || customCharge < 0) {
+        setState(() => _error = 'Enter a valid service charge (0 or more).');
+        return;
+      }
+    }
 
     setState(() {
       _loading = true;
@@ -80,6 +104,7 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
         vehicleId: v['vehicleId'] as String,
         jobType: _jobType.apiValue,
         jobTypeOtherDescription: jobTypeOther,
+        customServiceChargeLkr: customCharge,
         odometer: odo,
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
@@ -89,7 +114,7 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
       );
       Navigator.of(context).pop(created['id'] as String?);
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = userFacingError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -100,6 +125,7 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
     _odoController.dispose();
     _notesController.dispose();
     _otherJobTypeController.dispose();
+    _otherServiceChargeController.dispose();
     super.dispose();
   }
 
@@ -201,6 +227,7 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
                                 _jobType = value;
                                 if (value != ServiceJobType.other) {
                                   _otherJobTypeController.clear();
+                                  _otherServiceChargeController.clear();
                                 }
                               });
                             },
@@ -223,17 +250,52 @@ class _TakeJobScreenState extends State<TakeJobScreen> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _otherServiceChargeController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Service charge (LKR)',
+                          prefixIcon: Icon(Icons.payments_outlined),
+                          helperText: 'Quoted price for this custom job',
+                        ),
+                        validator: (value) {
+                          if (_jobType != ServiceJobType.other) return null;
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Enter the service charge';
+                          }
+                          final parsed = double.tryParse(value.trim());
+                          if (parsed == null || parsed < 0) {
+                            return 'Enter a valid amount';
+                          }
+                          return null;
+                        },
+                      ),
                     ],
                     const SizedBox(height: 16),
-                    TextField(
+                    TextFormField(
                       controller: _odoController,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Odometer (optional)',
-                        prefixIcon: Icon(Icons.speed_outlined),
-                        helperText: 'Current mileage reading',
+                        prefixIcon: const Icon(Icons.speed_outlined),
+                        helperText: _lastRecordedOdometerKm != null
+                            ? 'Last recorded: $_lastRecordedOdometerKm km — cannot enter less'
+                            : 'Current mileage reading',
                       ),
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isEmpty) return null;
+                        final parsed = int.tryParse(text);
+                        if (parsed == null) return 'Enter a valid number';
+                        return validateOdometerAgainstLast(
+                          parsed,
+                          _lastRecordedOdometerKm,
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextField(

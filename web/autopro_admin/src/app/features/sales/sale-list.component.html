@@ -1,0 +1,69 @@
+<div class="page-header">
+  <div>
+    <h1>Sales</h1>
+    <p class="lede">Sell shop inventory without a vehicle job — same invoice and stock rules.</p>
+  </div>
+  <div class="actions">
+    <a routerLink="/sales/new" class="btn-primary">New counter sale</a>
+    <button type="button" class="ghost" (click)="load()" [disabled]="loading()">Refresh</button>
+  </div>
+</div>
+
+<div class="filters" role="tablist">
+  @for (f of filters; track f.key) {
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="filter() === f.key"
+      class="filter"
+      [class.active]="filter() === f.key"
+      (click)="setFilter(f.key)"
+    >
+      <span class="filter__label">{{ f.label }}</span>
+      <span class="filter__desc">{{ f.description }}</span>
+    </button>
+  }
+</div>
+
+@if (error()) {
+  <div class="alert">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading sales…</p>
+} @else if (items().length === 0) {
+  <div class="empty">
+    <p>No sales in this view.</p>
+    <p class="muted">Start a counter sale to add inventory lines and print an invoice.</p>
+  </div>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Sale no.</th>
+          <th>Customer</th>
+          <th>Status</th>
+          <th>Opened</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (sale of items(); track sale.id) {
+          <tr class="row-nav" tabindex="0" [routerLink]="['/sales', sale.id]">
+            <td class="mono">{{ sale.jobNumber }}</td>
+            <td>{{ sale.customerName }}</td>
+            <td><app-job-status-chip [status]="sale.status" /></td>
+            <td>{{ sale.createdAtUtc | date: 'medium' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [page]="page()"
+    [pageSize]="pageSize()"
+    [totalCount]="totalCount()"
+    [disabled]="loading()"
+    (pageChange)="goToPage($event)"
+  />
+}

@@ -1,0 +1,88 @@
+@if (loading()) {
+  <p class="muted">Loading customer…</p>
+} @else if (pageError() && !customer()) {
+  <div class="alert">{{ pageError() }}</div>
+  <a routerLink="/customers">Back to customers</a>
+} @else if (customer()) {
+  @let c = customer()!;
+  <a class="back" routerLink="/customers">← Customers</a>
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Customer</p>
+      <h1>{{ c.fullName }}</h1>
+      <p class="meta">{{ c.phone }}@if (c.email) { · {{ c.email }} }</p>
+    </div>
+  </header>
+
+  @if (saved()) {
+    <div class="notice">Customer details saved.</div>
+  }
+
+  <form class="card form" (submit)="submit($event)">
+    <h2>Details</h2>
+    <label>
+      <span>Name</span>
+      <input
+        type="text"
+        name="fullName"
+        [(ngModel)]="fullName"
+        [class.field-invalid]="!!fieldErrors.get('fullName')"
+        required
+        autocomplete="name"
+      />
+      <app-field-error [message]="fieldErrors.get('fullName')" />
+    </label>
+    <label>
+      <span>Phone</span>
+      <input
+        type="tel"
+        name="phone"
+        [(ngModel)]="phone"
+        [class.field-invalid]="!!fieldErrors.get('phone')"
+        required
+        autocomplete="tel"
+      />
+      <app-field-error [message]="fieldErrors.get('phone')" />
+    </label>
+    <label>
+      <span>Email (optional)</span>
+      <input type="email" name="email" [(ngModel)]="email" autocomplete="email" />
+    </label>
+    <p class="registered muted">Registered {{ c.createdAtUtc | date: 'medium' }}</p>
+    <app-field-error [message]="fieldErrors.get('submit')" />
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="saving()">
+        {{ saving() ? 'Saving…' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+
+  <section class="card">
+    <h2>Vehicles ({{ c.vehicles.length }})</h2>
+    @if (c.vehicles.length === 0) {
+      <p class="muted">No vehicles registered for this customer yet.</p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Plate</th>
+              <th>Vehicle</th>
+              <th>Registered</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of c.vehicles; track v.id) {
+              <tr class="row-nav" tabindex="0" [routerLink]="['/vehicles', v.id]">
+                <td class="mono">{{ v.plateNumber }}</td>
+                <td>{{ customerVehicleSummary(v) }}</td>
+                <td>{{ v.createdAtUtc | date: 'medium' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}

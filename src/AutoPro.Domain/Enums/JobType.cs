@@ -6,4 +6,5 @@ public enum JobType
     FullService = 1,
     Repair = 2,
     Other = 3,
+    StoreSale = 4,
 }

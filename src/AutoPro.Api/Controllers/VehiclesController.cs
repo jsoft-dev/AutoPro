@@ -2,6 +2,7 @@ using AutoPro.Application.Contracts.Vehicles;
 using AutoPro.Application.Vehicles;
 using AutoPro.Domain.Entities;
 using AutoPro.Infrastructure.Persistence;
+using AutoPro.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +27,7 @@ public class VehiclesController(AutoProDbContext db) : ControllerBase
         if (vehicle is null)
             return NotFound(new { message = "Vehicle QR not recognized." });
 
-        return Ok(ToLookup(vehicle));
+        return Ok(await ToLookupAsync(vehicle, ct));
     }
 
     [HttpGet("by-plate")]
@@ -50,11 +51,18 @@ public class VehiclesController(AutoProDbContext db) : ControllerBase
         if (vehicle is null)
             return NotFound(new { message = "No vehicle with that registration number." });
 
-        return Ok(ToLookup(vehicle));
+        return Ok(await ToLookupAsync(vehicle, ct));
     }
 
-    private static VehicleQrLookupResponse ToLookup(Vehicle vehicle) =>
-        new(
+    private async Task<VehicleQrLookupResponse> ToLookupAsync(Vehicle vehicle, CancellationToken ct)
+    {
+        var lastOdometer = await VehicleOdometerLookup.GetLastRecordedAsync(
+            db,
+            vehicle.Id,
+            excludeJobId: null,
+            ct);
+
+        return new(
             vehicle.Id,
             vehicle.PlatePrefix,
             vehicle.PlateSuffix,
@@ -64,7 +72,9 @@ public class VehiclesController(AutoProDbContext db) : ControllerBase
             vehicle.Year,
             vehicle.CustomerId,
             vehicle.Customer.FullName,
-            vehicle.Customer.Phone);
+            vehicle.Customer.Phone,
+            lastOdometer);
+    }
 
     [HttpPost("~/api/v1/customers/{customerId:guid}/vehicles")]
     public async Task<ActionResult<VehicleCreatedResponse>> CreateForCustomer(

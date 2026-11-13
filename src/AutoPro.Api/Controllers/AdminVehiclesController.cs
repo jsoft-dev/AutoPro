@@ -1,4 +1,6 @@
+using AutoPro.Application.Contracts.Common;
 using AutoPro.Application.Contracts.Vehicles;
+using AutoPro.Domain.Services;
 using AutoPro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +14,14 @@ namespace AutoPro.Api.Controllers;
 public class AdminVehiclesController(AutoProDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<VehicleAdminListItemResponse>>> List(
+    public async Task<ActionResult<PagedResult<VehicleAdminListItemResponse>>> List(
         [FromQuery] string? q,
-        [FromQuery] int limit = 100,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
         CancellationToken ct = default)
     {
-        limit = Math.Clamp(limit, 1, 200);
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
 
         var query = db.Vehicles.AsNoTracking().Include(v => v.Customer).AsQueryable();
 
@@ -33,12 +37,16 @@ public class AdminVehiclesController(AutoProDbContext db) : ControllerBase
                 v.Customer.Phone.Contains(term));
         }
 
+        var totalCount = await query.CountAsync(ct);
         var vehicles = await query
             .OrderByDescending(v => v.CreatedAtUtc)
-            .Take(limit)
+            .ThenByDescending(v => v.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(ct);
 
-        return Ok(vehicles.Select(ToListItem).ToList());
+        var items = vehicles.Select(ToListItem).ToList();
+        return Ok(new PagedResult<VehicleAdminListItemResponse>(items, page, pageSize, totalCount));
     }
 
     [HttpGet("{id:guid}")]
@@ -51,6 +59,50 @@ public class AdminVehiclesController(AutoProDbContext db) : ControllerBase
         if (vehicle is null) return NotFound(new { message = "Vehicle not found." });
 
         return Ok(ToDetail(vehicle));
+    }
+
+    [HttpGet("{id:guid}/job-history")]
+    public async Task<ActionResult<IReadOnlyList<VehicleJobHistoryEntryResponse>>> JobHistory(
+        Guid id,
+        CancellationToken ct)
+    {
+        var exists = await db.Vehicles.AsNoTracking().AnyAsync(v => v.Id == id, ct);
+        if (!exists) return NotFound(new { message = "Vehicle not found." });
+
+        var jobs = await db.ServiceJobs.AsNoTracking()
+            .Where(j => j.VehicleId == id)
+            .OrderByDescending(j => j.CreatedAtUtc)
+            .ThenByDescending(j => j.Id)
+            .Include(j => j.PurchaseLines)
+                .ThenInclude(p => p.InventoryItem)
+            .Include(j => j.StatusHistory)
+            .ToListAsync(ct);
+
+        var items = jobs.Select(j => new VehicleJobHistoryEntryResponse(
+            j.Id,
+            j.JobNumber,
+            JobTypeDisplay.Label(j.JobType, j.JobTypeOtherDescription),
+            j.Status.ToString(),
+            j.OdometerReading,
+            string.IsNullOrWhiteSpace(j.Notes) ? null : j.Notes.Trim(),
+            j.StatusHistory
+                .Where(h => !string.IsNullOrWhiteSpace(h.Note))
+                .OrderBy(h => h.ChangedAtUtc)
+                .Select(h => h.Note!.Trim())
+                .ToList(),
+            j.CreatedAtUtc,
+            j.CompletedAtUtc,
+            j.PurchaseLines
+                .OrderBy(p => p.CreatedAtUtc)
+                .Select(p => new VehicleJobHistoryPurchaseSummary(
+                    p.Description,
+                    p.Quantity,
+                    p.InventoryItem?.PartNumber,
+                    string.IsNullOrWhiteSpace(p.VendorName) ? null : p.VendorName.Trim()))
+                .ToList()))
+            .ToList();
+
+        return Ok(items);
     }
 
     private static VehicleAdminListItemResponse ToListItem(Domain.Entities.Vehicle vehicle) =>

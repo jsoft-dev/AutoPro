@@ -22,6 +22,8 @@ class JobStatusLogic {
   static bool canModifyPurchases(JobStatus status) =>
       status == JobStatus.onGoing || status == JobStatus.onHold;
 
+  static bool canModifyJobDetails(JobStatus status) => canModifyPurchases(status);
+
   static bool isTerminalForCr(JobStatus status) =>
       status == JobStatus.cancelled ||
       status == JobStatus.completed ||

@@ -1,5 +1,5 @@
-<div class="layout no-print">
-  <header class="topbar">
+<div class="layout">
+  <header class="topbar no-print">
     <div class="topbar__brand">
       <img
         class="autopro-logo autopro-logo--topbar"
@@ -11,8 +11,11 @@
     </div>
     <nav>
       <a routerLink="/jobs" routerLinkActive="active">Jobs</a>
+      <a routerLink="/customers" routerLinkActive="active">Customers</a>
       <a routerLink="/vehicles" routerLinkActive="active">Vehicles</a>
+      <a routerLink="/sales" routerLinkActive="active">Sales</a>
       <a routerLink="/inventory" routerLinkActive="active">Inventory</a>
+      <a routerLink="/settings/business" routerLinkActive="active">Business settings</a>
     </nav>
     <div class="topbar__user">
       <span>{{ auth.displayName() }}</span>

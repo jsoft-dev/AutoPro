@@ -12,6 +12,10 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
     public DbSet<JobPurchaseLine> JobPurchaseLines => Set<JobPurchaseLine>();
     public DbSet<JobStatusHistory> JobStatusHistories => Set<JobStatusHistory>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<JobTypeServicePrice> JobTypeServicePrices => Set<JobTypeServicePrice>();
+    public DbSet<JobInvoice> JobInvoices => Set<JobInvoice>();
+    public DbSet<JobInvoiceLineItem> JobInvoiceLineItems => Set<JobInvoiceLineItem>();
+    public DbSet<OrganizationSettings> OrganizationSettings => Set<OrganizationSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,8 +60,43 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
             e.HasIndex(x => x.Status);
             e.HasIndex(x => x.CreatedAtUtc);
             e.Property(x => x.JobTypeOtherDescription).HasMaxLength(200);
-            e.HasOne(x => x.Vehicle).WithMany(v => v.Jobs).HasForeignKey(x => x.VehicleId);
+            e.Property(x => x.CustomServiceChargeLkr).HasPrecision(18, 2);
+            e.Property(x => x.StoreCustomerName).HasMaxLength(200);
+            e.HasOne(x => x.Vehicle).WithMany(v => v.Jobs).HasForeignKey(x => x.VehicleId).IsRequired(false);
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedByUserId);
+            e.HasOne(x => x.Invoice).WithOne(i => i.ServiceJob).HasForeignKey<JobInvoice>(i => i.ServiceJobId);
+        });
+
+        modelBuilder.Entity<JobTypeServicePrice>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.ServiceChargeLkr).HasPrecision(18, 2);
+            e.HasIndex(x => x.JobType).IsUnique();
+        });
+
+        modelBuilder.Entity<OrganizationSettings>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.OrganizationName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Tagline).HasMaxLength(200);
+            e.Property(x => x.LogoContentType).HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<JobInvoice>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.ServiceJobId).IsUnique();
+        });
+
+        modelBuilder.Entity<JobInvoiceLineItem>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Description).HasMaxLength(512).IsRequired();
+            e.Property(x => x.Quantity).HasPrecision(18, 3);
+            e.Property(x => x.UnitPrice).HasPrecision(18, 2);
+            e.HasOne(x => x.JobInvoice).WithMany(i => i.LineItems).HasForeignKey(x => x.JobInvoiceId);
+            e.HasOne(x => x.JobPurchaseLine).WithMany().HasForeignKey(x => x.JobPurchaseLineId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<InventoryItem>(e =>

@@ -24,43 +24,118 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final ApiClient _api = ApiClient(widget.session);
+  final ScrollController _scrollController = ScrollController();
+
   List<JobListItem> _jobs = [];
   bool _loading = true;
+  bool _loadingMore = false;
   String? _error;
   JobStatus? _filter;
+  int _page = 1;
+  int _totalCount = 0;
+  int _loadGeneration = 0;
+
+  bool get _hasMore => _jobs.length < _totalCount;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _scrollController.addListener(_onScroll);
+    _loadFirstPage();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final raw = await _api.getTodayJobs();
-      final jobs = raw
-          .map((e) => JobListItem.fromJson(e as Map<String, dynamic>))
-          .toList();
-      setState(() => _jobs = jobs);
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients || _loading || _loadingMore || !_hasMore) {
+      return;
+    }
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 120) {
+      _loadNextPage();
     }
   }
 
-  List<JobListItem> get _visibleJobs {
-    if (_filter == null) return _jobs;
-    return _jobs.where((j) => j.status == _filter).toList();
+  Future<void> _loadFirstPage() async {
+    final generation = ++_loadGeneration;
+    setState(() {
+      _loading = true;
+      _loadingMore = false;
+      _error = null;
+      _page = 1;
+    });
+
+    try {
+      final bounds = _api.utcTodayBounds();
+      final page = await _api.getJobs(
+        from: bounds.$1,
+        to: bounds.$2,
+        status: _filter?.apiValue,
+        page: 1,
+      );
+      if (!mounted || generation != _loadGeneration) return;
+      setState(() {
+        _jobs = page.items;
+        _totalCount = page.totalCount;
+        _page = page.page;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted || generation != _loadGeneration) return;
+      setState(() {
+        _error = userFacingError(e);
+        _loading = false;
+        _jobs = [];
+        _totalCount = 0;
+      });
+    }
   }
 
-  int _countFor(JobStatus? status) {
-    if (status == null) return _jobs.length;
-    return _jobs.where((j) => j.status == status).length;
+  Future<void> _loadNextPage() async {
+    if (_loading || _loadingMore || !_hasMore) return;
+
+    final generation = _loadGeneration;
+    final nextPage = _page + 1;
+
+    setState(() => _loadingMore = true);
+
+    try {
+      final bounds = _api.utcTodayBounds();
+      final page = await _api.getJobs(
+        from: bounds.$1,
+        to: bounds.$2,
+        status: _filter?.apiValue,
+        page: nextPage,
+      );
+      if (!mounted || generation != _loadGeneration) return;
+      setState(() {
+        _jobs = [..._jobs, ...page.items];
+        _totalCount = page.totalCount;
+        _page = page.page;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted || generation != _loadGeneration) return;
+      setState(() => _loadingMore = false);
+    }
+  }
+
+  void _setFilter(JobStatus? status) {
+    if (_filter == status) return;
+    setState(() => _filter = status);
+    _loadFirstPage();
+  }
+
+  String _chipLabel(String base, JobStatus? matches) {
+    if (_filter == matches && !_loading) {
+      return '$base ($_totalCount)';
+    }
+    return base;
   }
 
   Future<void> _logout() async {
@@ -125,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-    await _load();
+    await _loadFirstPage();
     if (result != null && mounted) {
       await _openJob(result);
     }
@@ -137,14 +212,13 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (_) => JobDetailScreen(session: widget.session, jobId: jobId),
       ),
     );
-    await _load();
+    await _loadFirstPage();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final visible = _visibleJobs;
 
     return Scaffold(
       appBar: AppBar(
@@ -163,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: _loading ? null : _load,
+            onPressed: _loading ? null : _loadFirstPage,
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
           ),
@@ -184,32 +258,32 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               children: [
                 _FilterChip(
-                  label: 'All (${_countFor(null)})',
+                  label: _chipLabel('All', null),
                   selected: _filter == null,
-                  onTap: () => setState(() => _filter = null),
+                  onTap: () => _setFilter(null),
                 ),
                 _FilterChip(
-                  label: 'Active (${_countFor(JobStatus.onGoing)})',
+                  label: _chipLabel('Active', JobStatus.onGoing),
                   selected: _filter == JobStatus.onGoing,
-                  onTap: () => setState(() => _filter = JobStatus.onGoing),
+                  onTap: () => _setFilter(JobStatus.onGoing),
                 ),
                 _FilterChip(
-                  label: 'On hold (${_countFor(JobStatus.onHold)})',
+                  label: _chipLabel('On hold', JobStatus.onHold),
                   selected: _filter == JobStatus.onHold,
-                  onTap: () => setState(() => _filter = JobStatus.onHold),
+                  onTap: () => _setFilter(JobStatus.onHold),
                 ),
                 _FilterChip(
-                  label: 'Done (${_countFor(JobStatus.completed)})',
+                  label: _chipLabel('Done', JobStatus.completed),
                   selected: _filter == JobStatus.completed,
-                  onTap: () => setState(() => _filter = JobStatus.completed),
+                  onTap: () => _setFilter(JobStatus.completed),
                 ),
               ],
             ),
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: _load,
-              child: _buildList(theme, scheme, visible),
+              onRefresh: _loadFirstPage,
+              child: _buildList(theme, scheme),
             ),
           ),
         ],
@@ -222,9 +296,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildList(ThemeData theme, ColorScheme scheme, List<JobListItem> visible) {
+  Widget _buildList(ThemeData theme, ColorScheme scheme) {
     if (_loading && _jobs.isEmpty) {
       return ListView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         children: const [
           SizedBox(height: 120),
           Center(child: CircularProgressIndicator()),
@@ -234,6 +310,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_error != null && _jobs.isEmpty) {
       return ListView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: 24),
           Padding(
@@ -244,8 +322,10 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    if (visible.isEmpty) {
+    if (_jobs.isEmpty) {
       return ListView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: 64),
           Icon(Icons.work_off_outlined, size: 56, color: scheme.outline),
@@ -270,12 +350,32 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    final itemCount = _jobs.length + ((_hasMore || _loadingMore) ? 1 : 0);
+
     return ListView.separated(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
-      itemCount: visible.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemCount: itemCount,
+      separatorBuilder: (context, index) {
+        if (index >= _jobs.length - 1) return const SizedBox.shrink();
+        return const SizedBox(height: 10);
+      },
       itemBuilder: (context, i) {
-        final job = visible[i];
+        if (i >= _jobs.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+
+        final job = _jobs[i];
         return JobCard(
           job: job,
           onTap: () => _openJob(job.id),

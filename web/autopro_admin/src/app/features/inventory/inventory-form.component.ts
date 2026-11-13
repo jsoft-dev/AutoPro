@@ -5,11 +5,13 @@ import { FormsModule } from '@angular/forms';
 
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryWritePayload } from '../../models/inventory.models';
+import { FieldErrorComponent } from '../../shared/field-error.component';
+import { FieldErrorsStore } from '../../shared/field-errors.store';
 
 @Component({
   selector: 'app-inventory-form',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, FieldErrorComponent],
   templateUrl: './inventory-form.component.html',
   styleUrl: './inventory-form.component.scss',
 })
@@ -21,7 +23,8 @@ export class InventoryFormComponent implements OnInit {
   readonly createMode = signal(false);
   readonly loading = signal(true);
   readonly saving = signal(false);
-  readonly error = signal<string | null>(null);
+  readonly pageError = signal<string | null>(null);
+  readonly fieldErrors = new FieldErrorsStore();
 
   partNumber = '';
   name = '';
@@ -37,7 +40,7 @@ export class InventoryFormComponent implements OnInit {
   }
 
   private loadPart(id: string | null): void {
-    this.error.set(null);
+    this.pageError.set(null);
     if (id === 'new' || !id) {
       this.createMode.set(true);
       this.partId = null;
@@ -64,7 +67,7 @@ export class InventoryFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.error.set(err.error?.message ?? 'Part not found.');
+        this.pageError.set(err.error?.message ?? 'Part not found.');
         this.loading.set(false);
       },
     });
@@ -72,7 +75,7 @@ export class InventoryFormComponent implements OnInit {
 
   submit(event: Event): void {
     event.preventDefault();
-    this.error.set(null);
+    this.fieldErrors.clear();
 
     const payload: InventoryWritePayload = {
       partNumber: this.partNumber.trim(),
@@ -83,19 +86,28 @@ export class InventoryFormComponent implements OnInit {
       isActive: this.isActive,
     };
 
-    if (!payload.partNumber || !payload.name) {
-      this.error.set('Part number and name are required.');
-      return;
+    let invalid = false;
+    if (!payload.partNumber) {
+      this.fieldErrors.set('partNumber', 'Part number is required.');
+      invalid = true;
     }
-    if (payload.quantityOnHand < 0 || payload.unitPrice < 0) {
-      this.error.set('Stock and price cannot be negative.');
-      return;
+    if (!payload.name) {
+      this.fieldErrors.set('name', 'Name is required.');
+      invalid = true;
     }
-
+    if (payload.quantityOnHand < 0) {
+      this.fieldErrors.set('quantityOnHand', 'Stock cannot be negative.');
+      invalid = true;
+    }
+    if (payload.unitPrice < 0) {
+      this.fieldErrors.set('unitPrice', 'Price cannot be negative.');
+      invalid = true;
+    }
     if (!this.createMode() && !this.partId) {
-      this.error.set('Missing part id.');
-      return;
+      this.fieldErrors.set('submit', 'Missing part id.');
+      invalid = true;
     }
+    if (invalid) return;
 
     this.saving.set(true);
     const req = this.createMode()
@@ -108,7 +120,7 @@ export class InventoryFormComponent implements OnInit {
         void this.router.navigate(['/inventory']);
       },
       error: (err: HttpErrorResponse) => {
-        this.error.set(err.error?.message ?? 'Could not save part.');
+        this.fieldErrors.set('submit', err.error?.message ?? 'Could not save part.');
         this.saving.set(false);
       },
     });

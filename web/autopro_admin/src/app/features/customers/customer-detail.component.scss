@@ -1,0 +1,81 @@
+.back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hero {
+  margin-bottom: 1.25rem;
+}
+
+.hero h1 {
+  margin: 0.25rem 0;
+  font-size: 1.75rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ap-muted);
+  font-weight: 600;
+}
+
+.meta {
+  margin: 0.35rem 0 0;
+  color: var(--ap-muted);
+}
+
+.field-invalid {
+  border-color: var(--ap-danger) !important;
+}
+
+.card.form {
+  max-width: 520px;
+}
+
+.card.form h2 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+label span {
+  font-weight: 600;
+  color: var(--ap-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ap-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+input:focus {
+  outline: 2px solid rgba(13, 71, 161, 0.25);
+  border-color: var(--ap-primary);
+}
+
+.registered {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+}
+
+.mono {
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+}

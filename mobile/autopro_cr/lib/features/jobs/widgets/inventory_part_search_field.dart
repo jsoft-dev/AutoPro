@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/api_client.dart';
 import '../../../models/inventory_models.dart';
 
 typedef InventorySearch = Future<InventorySearchPage> Function(
@@ -9,8 +10,9 @@ typedef InventorySearch = Future<InventorySearchPage> Function(
   int offset,
 });
 
-/// Dropdown-style part picker with debounced search and scroll-to-load-more pages.
-class InventoryPartSearchField extends StatefulWidget {
+/// Inventory part picker that opens a dedicated sheet above the keyboard
+/// (avoids [SearchAnchor] overlays hiding behind the keyboard in parent sheets).
+class InventoryPartSearchField extends StatelessWidget {
   const InventoryPartSearchField({
     super.key,
     required this.onSearch,
@@ -22,103 +24,73 @@ class InventoryPartSearchField extends StatefulWidget {
   final InventorySearchItem? value;
   final ValueChanged<InventorySearchItem?> onChanged;
 
-  @override
-  State<InventoryPartSearchField> createState() => _InventoryPartSearchFieldState();
-}
+  Future<void> _openPicker(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future<void>.delayed(Duration.zero);
 
-class _InventoryPartSearchFieldState extends State<InventoryPartSearchField> {
-  final SearchController _searchController = SearchController();
+    if (!context.mounted) return;
 
-  @override
-  void initState() {
-    super.initState();
-    final part = widget.value;
-    if (part != null) {
-      _searchController.text = part.label;
+    final picked = await showModalBottomSheet<InventorySearchItem>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (ctx) => _InventoryPartPickerSheet(onSearch: onSearch),
+    );
+
+    if (picked != null) {
+      onChanged(picked);
     }
-  }
-
-  @override
-  void didUpdateWidget(InventoryPartSearchField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      if (widget.value != null) {
-        _searchController.text = widget.value!.label;
-      } else {
-        _searchController.clear();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _clearSelection() {
-    widget.onChanged(null);
-    _searchController.clear();
-    _searchController.openView();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final selected = widget.value;
+    final selected = value;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SearchAnchor(
-          searchController: _searchController,
-          isFullScreen: false,
-          viewConstraints: const BoxConstraints(maxHeight: 320),
-          viewOnClose: () {
-            final part = widget.value;
-            if (part != null) {
-              _searchController.text = part.label;
-            }
-          },
-          builder: (context, controller) {
-            return SearchBar(
-              controller: controller,
-              hintText: 'Search by part number or name',
-              leading: const Icon(Icons.inventory_2_outlined),
-              elevation: const WidgetStatePropertyAll(0),
-              backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainerHighest),
-              trailing: [
-                if (selected != null)
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    tooltip: 'Clear',
-                    onPressed: _clearSelection,
-                  )
-                else
-                  Icon(
-                    controller.isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    color: scheme.onSurfaceVariant,
+        Material(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(28),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: () => _openPicker(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                children: [
+                  const SizedBox(width: 12),
+                  Icon(Icons.inventory_2_outlined, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      selected?.label ?? 'Search by part number or name',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: selected != null ? scheme.onSurface : scheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-              ],
-              onTap: () => controller.openView(),
-              onChanged: (_) => controller.openView(),
-            );
-          },
-          suggestionsBuilder: (context, controller) async {
-            return [
-              _PaginatedInventorySuggestions(
-                key: ValueKey(controller.text),
-                query: controller.text,
-                onSearch: widget.onSearch,
-                onSelect: (part) {
-                  widget.onChanged(part);
-                  controller.closeView(part.label);
-                  _searchController.text = part.label;
-                },
+                  if (selected != null)
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Clear',
+                      onPressed: () => onChanged(null),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Icon(Icons.keyboard_arrow_down, color: scheme.onSurfaceVariant),
+                    ),
+                ],
               ),
-            ];
-          },
+            ),
+          ),
         ),
         if (selected != null)
           Padding(
@@ -133,17 +105,100 @@ class _InventoryPartSearchFieldState extends State<InventoryPartSearchField> {
   }
 }
 
+class _InventoryPartPickerSheet extends StatefulWidget {
+  const _InventoryPartPickerSheet({required this.onSearch});
+
+  final InventorySearch onSearch;
+
+  @override
+  State<_InventoryPartPickerSheet> createState() => _InventoryPartPickerSheetState();
+}
+
+class _InventoryPartPickerSheetState extends State<_InventoryPartPickerSheet> {
+  final TextEditingController _query = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocus.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _query.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  void _onSelect(InventorySearchItem part) {
+    Navigator.pop(context, part);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final height = MediaQuery.sizeOf(context).height;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + bottomInset),
+      child: SizedBox(
+        height: height * 0.72,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Choose part', style: theme.textTheme.titleLarge),
+            const SizedBox(height: 4),
+            Text(
+              'Search stock by part number or name.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _query,
+              focusNode: _searchFocus,
+              decoration: const InputDecoration(
+                hintText: 'Part number or name',
+                prefixIcon: Icon(Icons.search),
+              ),
+              textInputAction: TextInputAction.search,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _PaginatedInventorySuggestions(
+                key: ValueKey(_query.text),
+                query: _query.text,
+                onSearch: widget.onSearch,
+                onSelect: _onSelect,
+                expand: true,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _PaginatedInventorySuggestions extends StatefulWidget {
   const _PaginatedInventorySuggestions({
     super.key,
     required this.query,
     required this.onSearch,
     required this.onSelect,
+    this.expand = false,
   });
 
   final String query;
   final InventorySearch onSearch;
   final ValueChanged<InventorySearchItem> onSelect;
+  final bool expand;
 
   @override
   State<_PaginatedInventorySuggestions> createState() =>
@@ -216,7 +271,7 @@ class _PaginatedInventorySuggestionsState extends State<_PaginatedInventorySugge
       if (!mounted || generation != _loadGeneration) return;
       setState(() {
         _loading = false;
-        _error = e.toString();
+        _error = userFacingError(e);
       });
     }
   }
@@ -242,7 +297,7 @@ class _PaginatedInventorySuggestionsState extends State<_PaginatedInventorySugge
       if (!mounted || generation != _loadGeneration) return;
       setState(() {
         _loadingMore = false;
-        _error = e.toString();
+        _error = userFacingError(e);
       });
     }
   }
@@ -257,70 +312,79 @@ class _PaginatedInventorySuggestionsState extends State<_PaginatedInventorySugge
     return false;
   }
 
+  Widget _buildListView() {
+    return NotificationListener<ScrollNotification>(
+      onNotification: _onScroll,
+      child: ListView.separated(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        itemCount: _items.length + (_hasMore || _loadingMore ? 1 : 0),
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          if (index >= _items.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          }
+
+          final part = _items[index];
+          return ListTile(
+            title: Text(part.name),
+            subtitle: Text(
+              '${part.partNumber} · ${part.quantityOnHand} on hand · '
+              'Rs ${part.unitPrice.toStringAsFixed(2)}',
+            ),
+            onTap: () => widget.onSelect(part),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final query = widget.query.trim();
 
     if (_loading && _items.isEmpty) {
-      return const SizedBox(
-        height: 120,
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null && _items.isEmpty) {
-      return SizedBox(
-        height: 100,
-        child: Center(
-          child: Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontSize: 13)),
-        ),
+      return Center(
+        child: Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontSize: 13)),
       );
     }
 
     if (_items.isEmpty) {
-      return ListTile(
-        enabled: false,
-        title: Text(
-          query.isEmpty ? 'No parts in stock' : 'No matches for "$query"',
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              query.isEmpty ? 'No parts in stock' : 'No matches for "$query"',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            const Text('Try another part number or name'),
+          ],
         ),
-        subtitle: const Text('Try another part number or name'),
       );
+    }
+
+    if (widget.expand) {
+      return _buildListView();
     }
 
     return SizedBox(
       height: 280,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: _onScroll,
-        child: ListView.separated(
-          itemCount: _items.length + (_hasMore || _loadingMore ? 1 : 0),
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            if (index >= _items.length) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Center(
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              );
-            }
-
-            final part = _items[index];
-            return ListTile(
-              title: Text(part.name),
-              subtitle: Text(
-                '${part.partNumber} · ${part.quantityOnHand} on hand · '
-                'Rs ${part.unitPrice.toStringAsFixed(2)}',
-              ),
-              onTap: () => widget.onSelect(part),
-            );
-          },
-        ),
-      ),
+      child: _buildListView(),
     );
   }
 }

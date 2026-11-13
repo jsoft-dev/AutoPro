@@ -44,24 +44,27 @@
           <th>Plate</th>
           <th>Status</th>
           <th>Opened</th>
-          <th></th>
         </tr>
       </thead>
       <tbody>
         @for (job of items(); track job.id) {
-          <tr>
+          <tr class="row-nav" tabindex="0" [routerLink]="['/jobs', job.id]">
             <td class="mono">{{ job.jobNumber }}</td>
             <td>{{ job.customerName }}</td>
             <td>{{ job.jobTypeLabel }}</td>
             <td>{{ job.plateNumber }}</td>
             <td><app-job-status-chip [status]="job.status" /></td>
             <td>{{ job.createdAtUtc | date: 'medium' }}</td>
-            <td class="actions">
-              <a [routerLink]="['/jobs', job.id]">Open</a>
-            </td>
           </tr>
         }
       </tbody>
     </table>
   </div>
+  <app-pagination
+    [page]="page()"
+    [pageSize]="pageSize()"
+    [totalCount]="totalCount()"
+    [disabled]="loading()"
+    (pageChange)="goToPage($event)"
+  />
 }

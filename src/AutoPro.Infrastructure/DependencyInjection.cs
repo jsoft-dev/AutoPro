@@ -1,4 +1,7 @@
 using System.Text;
+using AutoPro.Application.Billing;
+using AutoPro.Application.Email;
+using AutoPro.Application.Messaging;
 using AutoPro.Application.Options;
 using AutoPro.Infrastructure.Persistence;
 using AutoPro.Infrastructure.Services;
@@ -15,6 +18,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
 
         services.AddDbContext<AutoProDbContext>(options =>
             options.UseNpgsql(
@@ -23,6 +27,25 @@ public static class DependencyInjection
 
         services.AddScoped<JwtTokenGenerator>();
         services.AddScoped<JobNumberGenerator>();
+        services.AddScoped<IJobInvoiceFinalizer, JobInvoiceFinalizer>();
+        services.AddScoped<IPaymentClosedNotifier, PaymentClosedNotifier>();
+        services.AddSingleton<OrganizationLogoStore>();
+
+        var email = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
+        if (email.Enabled &&
+            string.Equals(email.Provider, "Smtp", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(email.SmtpHost))
+            {
+                throw new InvalidOperationException("Email is Enabled with Provider Smtp but SmtpHost is missing.");
+            }
+
+            services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        }
+        else
+        {
+            services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        }
 
         var jwt = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
             ?? throw new InvalidOperationException("Jwt configuration is missing.");

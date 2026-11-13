@@ -1,0 +1,79 @@
+<div class="part-picker">
+  <span class="field-label">Part / service</span>
+
+  <div class="trigger-wrap">
+    <div class="trigger-row">
+      <button
+        type="button"
+        class="trigger"
+        [class.trigger--selected]="value()"
+        (click)="togglePanel($event)"
+      >
+        <span class="trigger__text">{{ triggerLabel() }}</span>
+        @if (!value()) {
+          <span class="trigger__chev" aria-hidden="true">▾</span>
+        }
+      </button>
+      @if (value()) {
+        <button type="button" class="trigger__clear" aria-label="Clear part" (click)="clearSelection($event)">
+          ×
+        </button>
+      }
+    </div>
+
+    @if (open()) {
+      <div class="panel" (click)="$event.stopPropagation()">
+        <p class="panel-hint muted small">Search stock by part number or name.</p>
+        <input
+          #searchInput
+          type="search"
+          class="panel-search"
+          autocomplete="off"
+          placeholder="Part number or name"
+          [ngModel]="panelQuery()"
+          (ngModelChange)="onPanelQueryChange($event)"
+        />
+
+        <div #listEl class="panel-list" (scroll)="onListScroll($event)">
+          @if (loading() && items().length === 0) {
+            <p class="panel-status muted">Loading…</p>
+          } @else if (listError() && items().length === 0) {
+            <p class="panel-status panel-status--error">{{ listError() }}</p>
+          } @else if (items().length === 0) {
+            <p class="panel-status muted">
+              @if (panelQuery().trim()) {
+                No matches for "{{ panelQuery().trim() }}"
+              } @else {
+                No parts in stock
+              }
+            </p>
+            <p class="panel-status muted small">Try another part number or name</p>
+          } @else {
+            <ul class="panel-items">
+              @for (part of items(); track part.id) {
+                <li>
+                  <button type="button" class="panel-item" (click)="selectPart(part)">
+                    <span class="panel-item__name">{{ part.name }}</span>
+                    <span class="panel-item__meta muted small">
+                      {{ part.partNumber }} · {{ part.quantityOnHand }} on hand ·
+                      {{ part.unitPrice | currency: 'LKR ' : 'symbol' : '1.2-2' }}
+                    </span>
+                  </button>
+                </li>
+              }
+            </ul>
+            @if (loadingMore()) {
+              <p class="panel-more muted small">Loading more…</p>
+            }
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (value(); as selected) {
+    <p class="selection-hint muted small">
+      {{ selected.partNumber }} · {{ selected.quantityOnHand }} on hand
+    </p>
+  }
+</div>

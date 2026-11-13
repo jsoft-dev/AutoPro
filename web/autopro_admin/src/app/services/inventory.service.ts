@@ -2,9 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { API_BASE_URL } from '../core/api-config';
+import { PagedResult } from '../models/pagination.models';
 import {
   InventoryDetail,
   InventoryListItem,
+  InventorySearchPage,
   InventoryWritePayload,
 } from '../models/inventory.models';
 
@@ -12,13 +14,25 @@ import {
 export class InventoryService {
   private readonly http = inject(HttpClient);
 
-  list(options?: { q?: string; includeInactive?: boolean; limit?: number }) {
+  searchForJob(q?: string, limit = 20, offset = 0) {
+    let params = new HttpParams()
+      .set('limit', String(limit))
+      .set('offset', String(offset));
+    const term = q?.trim();
+    if (term) params = params.set('q', term);
+    return this.http.get<InventorySearchPage>(`${API_BASE_URL}/api/v1/admin/inventory/search`, {
+      params,
+    });
+  }
+
+  list(options?: { q?: string; includeInactive?: boolean; page?: number; pageSize?: number }) {
     let params = new HttpParams();
     const q = options?.q?.trim();
     if (q) params = params.set('q', q);
     if (options?.includeInactive) params = params.set('includeInactive', 'true');
-    if (options?.limit != null) params = params.set('limit', String(options.limit));
-    return this.http.get<InventoryListItem[]>(`${API_BASE_URL}/api/v1/admin/inventory`, {
+    if (options?.page != null) params = params.set('page', String(options.page));
+    if (options?.pageSize != null) params = params.set('pageSize', String(options.pageSize));
+    return this.http.get<PagedResult<InventoryListItem>>(`${API_BASE_URL}/api/v1/admin/inventory`, {
       params,
     });
   }

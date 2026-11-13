@@ -1,0 +1,69 @@
+<div class="page-header">
+  <div>
+    <h1>Customers</h1>
+    <p class="lede">People registered when customer reps add vehicles on the mobile app.</p>
+  </div>
+  <button type="button" class="ghost" (click)="load()" [disabled]="loading()">Refresh</button>
+</div>
+
+<form class="search" (submit)="onSearchSubmit($event)">
+  <input
+    type="search"
+    name="q"
+    placeholder="Name, phone, or email"
+    [ngModel]="searchQuery()"
+    (ngModelChange)="searchQuery.set($event)"
+    autocomplete="off"
+  />
+  <button type="submit" class="ghost" [disabled]="loading()">Search</button>
+  @if (searchQuery().trim()) {
+    <button type="button" class="ghost" (click)="clearSearch()">Clear</button>
+  }
+</form>
+
+@if (error()) {
+  <div class="alert">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading customers…</p>
+} @else if (items().length === 0) {
+  <div class="empty">
+    <p>No customers found.</p>
+    <p class="muted">
+      New customers appear when a customer rep registers a vehicle and owner on the mobile app.
+    </p>
+  </div>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th class="num">Vehicles</th>
+          <th>Registered</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of items(); track c.id) {
+          <tr class="row-nav" tabindex="0" [routerLink]="['/customers', c.id]">
+            <td>{{ c.fullName }}</td>
+            <td>{{ c.phone }}</td>
+            <td>{{ c.email ?? '—' }}</td>
+            <td class="num">{{ c.vehicleCount }}</td>
+            <td>{{ c.createdAtUtc | date: 'medium' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [page]="page()"
+    [pageSize]="pageSize()"
+    [totalCount]="totalCount()"
+    [disabled]="loading()"
+    (pageChange)="goToPage($event)"
+  />
+}

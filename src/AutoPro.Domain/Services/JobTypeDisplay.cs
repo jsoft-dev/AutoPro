@@ -13,6 +13,7 @@ public static class JobTypeDisplay
                 JobType.FullService => "Full Service",
                 JobType.Repair => "Repair",
                 JobType.Other => "Other",
+                JobType.StoreSale => "Store sale",
                 _ => type.ToString(),
             };
 }

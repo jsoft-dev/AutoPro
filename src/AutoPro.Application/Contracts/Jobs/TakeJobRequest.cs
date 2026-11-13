@@ -6,5 +6,6 @@ public record TakeJobRequest(
     Guid VehicleId,
     JobType JobType,
     string? JobTypeOtherDescription,
+    decimal? CustomServiceChargeLkr,
     int? OdometerReading,
     string? Notes);

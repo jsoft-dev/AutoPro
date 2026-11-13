@@ -1,3 +1,4 @@
+using AutoPro.Application.Contracts.Common;
 using AutoPro.Application.Contracts.Inventory;
 using AutoPro.Domain.Entities;
 using AutoPro.Infrastructure.Persistence;
@@ -12,14 +13,63 @@ namespace AutoPro.Api.Controllers;
 [Route("api/v1/admin/inventory")]
 public class AdminInventoryController(AutoProDbContext db) : ControllerBase
 {
-    [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<InventoryAdminListItemResponse>>> List(
+    private const int SearchDefaultPageSize = 20;
+    private const int SearchMaxPageSize = 50;
+
+    /// <summary>
+    /// Parts with stock, for picking on a job purchase line (same rules as the mobile app).
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<ActionResult<InventorySearchPageResponse>> Search(
         [FromQuery] string? q,
-        [FromQuery] bool includeInactive = false,
-        [FromQuery] int limit = 200,
+        [FromQuery] int limit = SearchDefaultPageSize,
+        [FromQuery] int offset = 0,
         CancellationToken ct = default)
     {
-        limit = Math.Clamp(limit, 1, 500);
+        limit = Math.Clamp(limit, 1, SearchMaxPageSize);
+        offset = Math.Max(0, offset);
+
+        var query = db.InventoryItems.AsNoTracking()
+            .Where(i => i.IsActive && i.QuantityOnHand > 0);
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(i =>
+                EF.Functions.ILike(i.Name, $"%{term}%") ||
+                EF.Functions.ILike(i.PartNumber, $"%{term}%"));
+        }
+
+        var rows = await query
+            .OrderBy(i => i.PartNumber)
+            .ThenBy(i => i.Name)
+            .ThenBy(i => i.Id)
+            .Skip(offset)
+            .Take(limit + 1)
+            .Select(i => new InventorySearchItemResponse(
+                i.Id,
+                i.PartNumber,
+                i.Name,
+                i.QuantityOnHand,
+                i.UnitPrice))
+            .ToListAsync(ct);
+
+        var hasMore = rows.Count > limit;
+        var page = rows.Take(limit).ToList();
+
+        return Ok(new InventorySearchPageResponse(page, hasMore));
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<InventoryAdminListItemResponse>>> List(
+        [FromQuery] string? q,
+        [FromQuery] bool includeInactive = false,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
 
         var query = db.InventoryItems.AsNoTracking().AsQueryable();
 
@@ -34,13 +84,16 @@ public class AdminInventoryController(AutoProDbContext db) : ControllerBase
                 EF.Functions.ILike(i.PartNumber, $"%{term}%"));
         }
 
+        var totalCount = await query.CountAsync(ct);
         var items = await query
-            .OrderBy(i => i.PartNumber)
-            .ThenBy(i => i.Name)
-            .Take(limit)
+            .OrderByDescending(i => i.CreatedAtUtc)
+            .ThenByDescending(i => i.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(ct);
 
-        return Ok(items.Select(ToListItem).ToList());
+        var mapped = items.Select(ToListItem).ToList();
+        return Ok(new PagedResult<InventoryAdminListItemResponse>(mapped, page, pageSize, totalCount));
     }
 
     [HttpGet("{id:guid}")]

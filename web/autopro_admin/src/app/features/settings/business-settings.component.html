@@ -1,0 +1,145 @@
+<div class="page-header">
+  <div>
+    <h1>Business settings</h1>
+    <p class="lede">
+      Organization details appear on printed invoices. Job type prices apply when a job is completed.
+    </p>
+  </div>
+  <div class="actions">
+    <button
+      type="button"
+      class="ghost"
+      (click)="load()"
+      [disabled]="loading() || savingPrices() || savingOrganization()"
+    >
+      Refresh
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert">{{ error() }}</div>
+}
+
+@if (pricesSaved()) {
+  <div class="notice">Job type prices saved.</div>
+}
+
+@if (organizationSaved()) {
+  <div class="notice">Organization settings saved.</div>
+}
+
+<section class="card">
+  <h2>Organization settings</h2>
+  @if (loading()) {
+    <p class="muted">Loading…</p>
+  } @else {
+    <div class="org-grid">
+      <div class="org-fields">
+        <label class="field">
+          Organization name
+          <input
+            type="text"
+            maxlength="200"
+            [ngModel]="orgNameDraft()"
+            (ngModelChange)="setOrgName($event)"
+            placeholder="e.g. City Auto Garage"
+          />
+        </label>
+        <label class="field">
+          Tagline <span class="optional">(optional)</span>
+          <input
+            type="text"
+            maxlength="200"
+            [ngModel]="orgTaglineDraft()"
+            (ngModelChange)="setOrgTagline($event)"
+            placeholder="e.g. Vehicle service &amp; repairs"
+          />
+        </label>
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn-primary"
+            [disabled]="savingOrganization()"
+            (click)="saveOrganization()"
+          >
+            {{ savingOrganization() ? 'Saving…' : 'Save organization' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="org-logo">
+        <p class="org-logo-label">Organization logo</p>
+        <div class="org-logo-preview" [class.org-logo-preview--empty]="!organizationLogoUrl()">
+          @if (organizationLogoUrl(); as logoUrl) {
+            <img [src]="logoUrl" alt="Organization logo preview" />
+          } @else {
+            <span class="muted">No logo yet</span>
+          }
+        </div>
+        <p class="muted small">PNG, JPEG, or WebP — max 2&nbsp;MB. Used on printed invoices.</p>
+        <div class="org-logo-actions">
+          <label class="btn-primary file-picker">
+            {{ uploadingLogo() ? 'Uploading…' : 'Upload logo' }}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+              [disabled]="uploadingLogo()"
+              (change)="onLogoSelected($event)"
+            />
+          </label>
+          @if (organization()?.hasLogo) {
+            <button type="button" class="ghost" [disabled]="uploadingLogo()" (click)="removeLogo()">
+              Remove
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>
+
+<section class="card">
+  <h2>Job type prices</h2>
+  <p class="section-lede muted">
+  Wash, Full Service, and Repair use these amounts.
+  <strong>Other</strong> jobs get their description and service charge on the mobile app when the rep takes or edits the job.
+  </p>
+  @if (loading()) {
+    <p class="muted">Loading…</p>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Job type</th>
+            <th class="num">Service charge (LKR)</th>
+            <th>Last updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of prices(); track row.jobType) {
+            <tr>
+              <td>{{ row.jobTypeLabel }}</td>
+              <td class="num">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [value]="draftValue(row.jobType)"
+                  (input)="setDraft(row.jobType, $any($event.target).value)"
+                />
+              </td>
+              <td class="muted">{{ row.updatedAtUtc | date: 'short' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn-primary" [disabled]="savingPrices()" (click)="savePrices()">
+        {{ savingPrices() ? 'Saving…' : 'Save prices' }}
+      </button>
+    </div>
+  }
+</section>

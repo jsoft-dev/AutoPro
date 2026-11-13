@@ -9,6 +9,7 @@ import '../../models/job_models.dart';
 import '../../widgets/inline_error.dart';
 import '../../widgets/job_status_chip.dart';
 import 'widgets/add_purchase_sheet.dart';
+import 'widgets/edit_job_details_sheet.dart';
 
 class JobDetailScreen extends StatefulWidget {
   const JobDetailScreen({
@@ -56,7 +57,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       final json = await _api.getJob(widget.jobId);
       setState(() => _job = JobDetail.fromJson(json));
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = userFacingError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -143,12 +144,29 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(userFacingError(e))),
         );
       }
     } finally {
       if (mounted) setState(() => _statusBusy = false);
     }
+  }
+
+  Future<void> _openEditJobDetails() async {
+    final job = _job;
+    if (job == null || !JobStatusLogic.canModifyJobDetails(job.status)) return;
+
+    final updated = await showEditJobDetailsSheet(
+      context: context,
+      api: _api,
+      job: job,
+    );
+    if (updated == null || !mounted) return;
+    setState(() => _job = updated);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Job details updated')),
+    );
   }
 
   Future<void> _openAddPurchase() async {
@@ -239,7 +257,12 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _VehicleCard(job: job),
+                              _VehicleCard(
+                                job: job,
+                                canEditDetails:
+                                    JobStatusLogic.canModifyJobDetails(job.status),
+                                onEditDetails: _openEditJobDetails,
+                              ),
                               if (job.notes != null &&
                                   job.notes!.isNotEmpty) ...[
                                 const SizedBox(height: 16),
@@ -261,37 +284,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                 onTarget: _changeStatus,
                               ),
                               const SizedBox(height: 24),
-                              Row(
-                                children: [
-                                  const Expanded(
-                                      child: const _SectionTitle(
-                                          title: 'Purchases')),
-                                  Text(
-                                    'Total Rs ${job.purchasesTotal.toStringAsFixed(2)}',
-                                    style: theme.textTheme.titleSmall?.copyWith(
-                                      color: scheme.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              if (job.purchases.isEmpty)
-                                Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Text(
-                                      'No purchases yet. Add parts from the shop or external vendors.',
-                                      style:
-                                          theme.textTheme.bodyMedium?.copyWith(
-                                        color: scheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              else
-                                ...job.purchases
-                                    .map((p) => _PurchaseTile(line: p)),
+                              _ChargesSection(job: job),
                               const SizedBox(height: 80),
                             ],
                           ),
@@ -329,9 +322,15 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _VehicleCard extends StatelessWidget {
-  const _VehicleCard({required this.job});
+  const _VehicleCard({
+    required this.job,
+    required this.canEditDetails,
+    required this.onEditDetails,
+  });
 
   final JobDetail job;
+  final bool canEditDetails;
+  final VoidCallback onEditDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -357,16 +356,35 @@ class _VehicleCard extends StatelessWidget {
               leading: const Icon(Icons.person_outline),
               title: Text(job.customerName),
             ),
-            if (job.odometerReading != null)
-              ListTile(
-                leading: const Icon(Icons.speed_outlined),
-                title: Text('${job.odometerReading} km'),
-                subtitle: const Text('Odometer at check-in'),
+            ListTile(
+              leading: const Icon(Icons.speed_outlined),
+              title: Text(
+                job.odometerReading != null
+                    ? '${job.odometerReading} km'
+                    : 'Not recorded',
               ),
+              subtitle: const Text('Odometer at check-in'),
+              trailing: canEditDetails
+                  ? IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Edit job details',
+                      onPressed: onEditDetails,
+                    )
+                  : null,
+              onTap: canEditDetails ? onEditDetails : null,
+            ),
             ListTile(
               leading: const Icon(Icons.handyman_outlined),
               title: Text(job.jobTypeLabel),
               subtitle: const Text('Job type'),
+              trailing: canEditDetails
+                  ? IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Edit job details',
+                      onPressed: onEditDetails,
+                    )
+                  : null,
+              onTap: canEditDetails ? onEditDetails : null,
             ),
           ],
         ),
@@ -530,6 +548,177 @@ class _StatusActionButton extends StatelessWidget {
           ),
         ),
     };
+  }
+}
+
+class _ChargesSection extends StatelessWidget {
+  const _ChargesSection({required this.job});
+
+  final JobDetail job;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final invoice = job.invoice;
+
+    if (invoice != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: _SectionTitle(title: 'Bill')),
+              Text(
+                'Total Rs ${job.amountDue.toStringAsFixed(2)}',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Includes service charge for ${job.jobTypeLabel} (fixed when job was completed).',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...invoice.lineItems.map((line) => _InvoiceLineTile(line: line)),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(child: _SectionTitle(title: 'Purchases')),
+            if (job.purchases.isNotEmpty || job.jobTypeServiceChargeLkr > 0)
+              Text(
+                'Est. Rs ${job.amountDue.toStringAsFixed(2)}',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        if (job.jobTypeServiceChargeLkr > 0) ...[
+          _PendingServiceChargeRow(
+            jobTypeLabel: job.jobTypeLabel,
+            amount: job.jobTypeServiceChargeLkr,
+          ),
+        ],
+        const SizedBox(height: 8),
+        if (job.purchases.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'No purchases yet. Add parts from the shop or external vendors.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          )
+        else
+          ...job.purchases.map((p) => _PurchaseTile(line: p)),
+      ],
+    );
+  }
+}
+
+class _PendingServiceChargeRow extends StatelessWidget {
+  const _PendingServiceChargeRow({
+    required this.jobTypeLabel,
+    required this.amount,
+  });
+
+  final String jobTypeLabel;
+  final double amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: scheme.primaryContainer,
+          child: Icon(Icons.home_repair_service_outlined, color: scheme.onPrimaryContainer),
+        ),
+        title: Text('Service charge — $jobTypeLabel'),
+        subtitle: const Text('From Business settings · applied at completion'),
+        trailing: Text(
+          'Rs ${amount.toStringAsFixed(2)}',
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+}
+
+class _InvoiceLineTile extends StatelessWidget {
+  const _InvoiceLineTile({required this.line});
+
+  final JobInvoiceLineItem line;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isService = line.kind == InvoiceLineItemKind.serviceCharge;
+
+    IconData icon;
+    Color? bg;
+    Color? fg;
+    String subtitle;
+
+    if (isService) {
+      icon = Icons.home_repair_service_outlined;
+      bg = scheme.primaryContainer;
+      fg = scheme.onPrimaryContainer;
+      subtitle = 'Service charge · qty ${line.quantity}';
+    } else {
+      final inHouse = line.source == LineItemSource.inHouse;
+      icon = inHouse ? Icons.inventory_2_outlined : Icons.storefront_outlined;
+      bg = inHouse ? scheme.secondaryContainer : scheme.tertiaryContainer;
+      fg = inHouse ? scheme.onSecondaryContainer : scheme.onTertiaryContainer;
+      final parts = <String>[
+        if (line.inventoryPartNumber != null) line.inventoryPartNumber!,
+        line.source?.label ?? 'Purchase',
+        'qty ${line.quantity}',
+      ];
+      if (line.vendorName != null && line.vendorName!.isNotEmpty) {
+        parts.insert(0, line.vendorName!);
+      }
+      subtitle = parts.join(' · ');
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: bg,
+          child: Icon(icon, color: fg),
+        ),
+        title: Text(line.description),
+        subtitle: Text(subtitle),
+        trailing: Text(
+          'Rs ${line.lineTotal.toStringAsFixed(2)}',
+          style:
+              theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
   }
 }
 

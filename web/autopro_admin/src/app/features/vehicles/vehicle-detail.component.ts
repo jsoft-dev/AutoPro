@@ -1,18 +1,25 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { forkJoin, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { of } from 'rxjs';
 import QRCode from 'qrcode';
 
 import { VehiclesService } from '../../services/vehicles.service';
-import { VehicleDetail, vehicleSummary } from '../../models/vehicle.models';
+import {
+  VehicleDetail,
+  VehicleJobHistoryEntry,
+  formatJobHistoryPurchase,
+  vehicleJobInformationLines,
+  vehicleSummary,
+} from '../../models/vehicle.models';
+import { JobStatusChipComponent } from '../../shared/job-status-chip.component';
 
 @Component({
   selector: 'app-vehicle-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, DecimalPipe, JobStatusChipComponent],
   templateUrl: './vehicle-detail.component.html',
   styleUrl: './vehicle-detail.component.scss',
 })
@@ -21,12 +28,15 @@ export class VehicleDetailComponent implements OnInit {
   private readonly vehiclesApi = inject(VehiclesService);
 
   readonly vehicle = signal<VehicleDetail | null>(null);
+  readonly jobHistory = signal<VehicleJobHistoryEntry[]>([]);
   readonly qrDataUrl = signal<string | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly showPrint = signal(false);
 
   readonly vehicleSummary = vehicleSummary;
+  readonly formatJobHistoryPurchase = formatJobHistoryPurchase;
+  readonly vehicleJobInformationLines = vehicleJobInformationLines;
 
   ngOnInit(): void {
     this.route.paramMap
@@ -37,19 +47,23 @@ export class VehicleDetailComponent implements OnInit {
           this.loading.set(true);
           this.error.set(null);
           this.qrDataUrl.set(null);
-          return this.vehiclesApi.getById(id);
+          return forkJoin({
+            vehicle: this.vehiclesApi.getById(id),
+            jobHistory: this.vehiclesApi.getJobHistory(id),
+          });
         }),
       )
       .subscribe({
-        next: async (detail) => {
-          if (!detail) {
+        next: async (result) => {
+          if (!result) {
             this.error.set('Vehicle not found.');
             this.loading.set(false);
             return;
           }
-          this.vehicle.set(detail);
+          this.vehicle.set(result.vehicle);
+          this.jobHistory.set(result.jobHistory);
           try {
-            const dataUrl = await QRCode.toDataURL(detail.qrPayload, {
+            const dataUrl = await QRCode.toDataURL(result.vehicle.qrPayload, {
               width: 280,
               margin: 2,
               errorCorrectionLevel: 'M',

@@ -78,7 +78,7 @@ Set the API URL in `src/environments/environment.ts` (default `http://localhost:
 |--------|------|-------------|
 | GET | `/api/v1/jobs`, `/today`, `/{id}` | Same job views (AO + CR) |
 | GET | `/api/v1/admin/vehicles`, `/{id}` | Registered vehicles + `qrPayload` for print |
-| POST | `/api/v1/admin/jobs/{id}/close` | Payment received → `Closed`, printable bill |
+| POST | `/api/v1/admin/jobs/{id}/close` | Payment received → `Closed`, printable bill; optional thank-you email |
 
 **Vehicles** (nav): search by plate, customer, or phone → open a vehicle → **Print QR label** for the customer.
 
@@ -202,8 +202,12 @@ AutoPro/
   web/autopro_admin/    # The WebApp (Angular)
 ```
 
+## Email (payment thank-you, optional)
+
+After AO **close** (payment), the API can email the customer when their profile includes an email. Local dev defaults to **log-only** (no SMTP signup). See **[docs/email-payment-thank-you.md](docs/email-payment-thank-you.md)**.
+
 ## Next (in-repo backlog)
 
 - CTO / Supervisor roles
-- Itemized labor charges (not only purchase lines)
+- ~~Itemized labor charges (not only purchase lines)~~ — job-type service charge on invoice at completion; configure under **Business settings** in admin
 - Persist payment method / receipt number on close

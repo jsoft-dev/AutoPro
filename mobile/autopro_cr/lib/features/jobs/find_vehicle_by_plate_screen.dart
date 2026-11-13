@@ -65,7 +65,7 @@ class _FindVehicleByPlateScreenState extends State<FindVehicleByPlateScreen> {
         _notFound = notFound;
         _error = notFound
             ? 'No vehicle with plate “$_formattedPlate” is registered yet.'
-            : e.toString();
+            : userFacingError(e);
       });
     } finally {
       if (mounted) setState(() => _loading = false);

@@ -1,0 +1,12 @@
+<nav class="pager" aria-label="Pagination">
+  <span class="pager__range">{{ rangeLabel() }}</span>
+  <div class="pager__actions">
+    <button type="button" class="ghost" [disabled]="disabled() || !canPrev()" (click)="prev()">
+      Previous
+    </button>
+    <span class="pager__meta">Page {{ page() }} of {{ totalPages() }}</span>
+    <button type="button" class="ghost" [disabled]="disabled() || !canNext()" (click)="next()">
+      Next
+    </button>
+  </div>
+</nav>

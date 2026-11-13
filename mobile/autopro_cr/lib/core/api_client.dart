@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/inventory_models.dart';
+import '../models/job_models.dart';
 import 'api_config.dart';
 import 'auth_session.dart';
 
@@ -109,19 +110,66 @@ class ApiClient {
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
-  Future<List<dynamic>> getTodayJobs() async {
+  static const int defaultJobsPageSize = 20;
+
+  /// Today's jobs and filters use the paginated jobs list (UTC calendar day bounds).
+  Future<JobListPage> getJobs({
+    DateTime? from,
+    DateTime? to,
+    String? status,
+    int page = 1,
+    int pageSize = defaultJobsPageSize,
+  }) async {
+    final params = <String, String>{
+      'page': '$page',
+      'pageSize': '$pageSize',
+    };
+    if (from != null) params['from'] = from.toUtc().toIso8601String();
+    if (to != null) params['to'] = to.toUtc().toIso8601String();
+    if (status != null && status.isNotEmpty) params['status'] = status;
+
     final res = await http.get(
-      Uri.parse('$baseUrl/api/v1/jobs/today'),
+      Uri.parse('$baseUrl/api/v1/jobs').replace(queryParameters: params),
       headers: _authHeaders(),
     );
     _throwIfError(res);
-    return jsonDecode(res.body) as List<dynamic>;
+    return JobListPage.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  (DateTime from, DateTime to) utcTodayBounds() {
+    final now = DateTime.now().toUtc();
+    final start = DateTime.utc(now.year, now.month, now.day);
+    return (start, start.add(const Duration(days: 1)));
   }
 
   Future<Map<String, dynamic>> getJob(String jobId) async {
     final res = await http.get(
       Uri.parse('$baseUrl/api/v1/jobs/$jobId'),
       headers: _authHeaders(),
+    );
+    _throwIfError(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateJobDetails(
+    String jobId, {
+    required String jobType,
+    String? jobTypeOtherDescription,
+    double? customServiceChargeLkr,
+    int? odometerReading,
+  }) async {
+    final res = await http.patch(
+      Uri.parse('$baseUrl/api/v1/jobs/$jobId'),
+      headers: {
+        ..._authHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'jobType': jobType,
+        'jobTypeOtherDescription': jobTypeOtherDescription,
+        'customServiceChargeLkr': customServiceChargeLkr,
+        'odometerReading': odometerReading,
+      }),
     );
     _throwIfError(res);
     return jsonDecode(res.body) as Map<String, dynamic>;
@@ -195,6 +243,7 @@ class ApiClient {
     required String vehicleId,
     required String jobType,
     String? jobTypeOtherDescription,
+    double? customServiceChargeLkr,
     int? odometer,
     String? notes,
   }) async {
@@ -208,6 +257,7 @@ class ApiClient {
         'vehicleId': vehicleId,
         'jobType': jobType,
         'jobTypeOtherDescription': jobTypeOtherDescription,
+        'customServiceChargeLkr': customServiceChargeLkr,
         'odometerReading': odometer,
         'notes': notes,
       }),
@@ -226,15 +276,38 @@ class ApiClient {
 
   void _throwIfError(http.Response res) {
     if (res.statusCode >= 200 && res.statusCode < 300) return;
-    String message = res.body;
+    throw ApiException(res.statusCode, _messageFromResponse(res));
+  }
+
+  static String _messageFromResponse(http.Response res) {
     try {
       final body = jsonDecode(res.body);
       if (body is Map && body['message'] != null) {
-        message = body['message'].toString();
+        final message = body['message'].toString().trim();
+        if (message.isNotEmpty) return message;
       }
     } catch (_) {}
-    throw ApiException(res.statusCode, message);
+    return defaultMessageForHttpStatus(res.statusCode);
   }
+}
+
+/// Plain-language text for UI — never exposes exception type or status codes.
+String userFacingError(Object error, {String fallback = 'Something went wrong. Try again.'}) {
+  if (error is ApiException) return error.message;
+  return fallback;
+}
+
+String defaultMessageForHttpStatus(int statusCode) {
+  return switch (statusCode) {
+    400 => 'Check your entries and try again.',
+    401 => 'Please sign in again.',
+    403 => 'You don\'t have permission to do that.',
+    404 => 'That item was not found.',
+    409 => 'This action conflicts with existing data.',
+    422 => 'Check your entries and try again.',
+    >= 500 => 'Server error. Try again in a moment.',
+    _ => 'Something went wrong. Try again.',
+  };
 }
 
 class ApiException implements Exception {
@@ -243,5 +316,5 @@ class ApiException implements Exception {
   final String message;
 
   @override
-  String toString() => 'ApiException($statusCode): $message';
+  String toString() => message;
 }

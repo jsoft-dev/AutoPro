@@ -98,6 +98,69 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.ToTable("InventoryItems");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.JobInvoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("FinalizedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ServiceJobId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceJobId")
+                        .IsUnique();
+
+                    b.ToTable("JobInvoices");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.JobInvoiceLineItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("JobInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("JobPurchaseLineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobInvoiceId");
+
+                    b.HasIndex("JobPurchaseLineId");
+
+                    b.ToTable("JobInvoiceLineItems");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.JobPurchaseLine", b =>
                 {
                     b.Property<Guid>("Id")
@@ -177,6 +240,57 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.ToTable("JobStatusHistories");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.JobTypeServicePrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("JobType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("ServiceChargeLkr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobType")
+                        .IsUnique();
+
+                    b.ToTable("JobTypeServicePrices");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.OrganizationSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LogoContentType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("OrganizationName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Tagline")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OrganizationSettings");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.ServiceJob", b =>
                 {
                     b.Property<Guid>("Id")
@@ -194,6 +308,10 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal?>("CustomServiceChargeLkr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("JobNumber")
                         .IsRequired()
@@ -216,7 +334,11 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<Guid>("VehicleId")
+                    b.Property<string>("StoreCustomerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("VehicleId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -331,6 +453,35 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.ToTable("Vehicles");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.JobInvoice", b =>
+                {
+                    b.HasOne("AutoPro.Domain.Entities.ServiceJob", "ServiceJob")
+                        .WithOne("Invoice")
+                        .HasForeignKey("AutoPro.Domain.Entities.JobInvoice", "ServiceJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServiceJob");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.JobInvoiceLineItem", b =>
+                {
+                    b.HasOne("AutoPro.Domain.Entities.JobInvoice", "JobInvoice")
+                        .WithMany("LineItems")
+                        .HasForeignKey("JobInvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AutoPro.Domain.Entities.JobPurchaseLine", "JobPurchaseLine")
+                        .WithMany()
+                        .HasForeignKey("JobPurchaseLineId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("JobInvoice");
+
+                    b.Navigation("JobPurchaseLine");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.JobPurchaseLine", b =>
                 {
                     b.HasOne("AutoPro.Domain.Entities.InventoryItem", "InventoryItem")
@@ -369,9 +520,7 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
 
                     b.HasOne("AutoPro.Domain.Entities.Vehicle", "Vehicle")
                         .WithMany("Jobs")
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("VehicleId");
 
                     b.Navigation("CreatedByUser");
 
@@ -394,8 +543,15 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.Navigation("Vehicles");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.JobInvoice", b =>
+                {
+                    b.Navigation("LineItems");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.ServiceJob", b =>
                 {
+                    b.Navigation("Invoice");
+
                     b.Navigation("PurchaseLines");
 
                     b.Navigation("StatusHistory");

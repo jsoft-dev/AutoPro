@@ -9,7 +9,7 @@ public record JobListItemResponse(
     JobType JobType,
     string? JobTypeOtherDescription,
     string JobTypeLabel,
-    string PlateNumber,
+    string? PlateNumber,
     string CustomerName,
     int? OdometerReading,
     DateTime CreatedAtUtc);
@@ -31,6 +31,22 @@ public record JobStatusHistoryResponse(
     DateTime ChangedAtUtc,
     string? Note);
 
+public record JobInvoiceLineItemResponse(
+    Guid Id,
+    InvoiceLineItemKind Kind,
+    LineItemSource? Source,
+    string Description,
+    decimal Quantity,
+    decimal UnitPrice,
+    string? VendorName,
+    string? InventoryPartNumber);
+
+public record JobInvoiceResponse(
+    Guid Id,
+    DateTime FinalizedAtUtc,
+    decimal GrandTotal,
+    IReadOnlyList<JobInvoiceLineItemResponse> LineItems);
+
 public record JobDetailResponse(
     Guid Id,
     string JobNumber,
@@ -38,15 +54,20 @@ public record JobDetailResponse(
     JobType JobType,
     string? JobTypeOtherDescription,
     string JobTypeLabel,
-    Guid VehicleId,
-    string PlateNumber,
-    Guid CustomerId,
+    Guid? VehicleId,
+    string? PlateNumber,
+    Guid? CustomerId,
     string CustomerName,
+    string? StoreCustomerName,
     int? OdometerReading,
     string? Notes,
     DateTime CreatedAtUtc,
     DateTime? CompletedAtUtc,
     DateTime? ClosedAtUtc,
     decimal PurchasesTotal,
+    decimal? CustomServiceChargeLkr,
+    decimal JobTypeServiceChargeLkr,
     IReadOnlyList<JobPurchaseLineResponse> Purchases,
-    IReadOnlyList<JobStatusHistoryResponse> StatusHistory);
+    JobInvoiceResponse? Invoice,
+    IReadOnlyList<JobStatusHistoryResponse> StatusHistory,
+  int? VehicleLastRecordedOdometerKm);

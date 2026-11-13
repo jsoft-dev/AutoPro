@@ -1,6 +1,7 @@
 # .NET
 bin/
 obj/
+src/AutoPro.Api/AppData/
 *.user
 .vs/
 appsettings.*.local.json
@@ -12,6 +13,9 @@ mobile/**/.flutter-plugins
 mobile/**/.flutter-plugins-dependencies
 mobile/**/.packages
 mobile/**/pubspec.lock
+
+# Dev launcher (machine-specific tool paths)
+tools/dev-launcher/paths.local.json
 
 # IDE
 .idea/

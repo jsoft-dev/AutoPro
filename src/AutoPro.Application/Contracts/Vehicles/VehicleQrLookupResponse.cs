@@ -10,4 +10,5 @@ public record VehicleQrLookupResponse(
     int? Year,
     Guid CustomerId,
     string CustomerName,
-    string CustomerPhone);
+    string CustomerPhone,
+    int? LastRecordedOdometerKm);

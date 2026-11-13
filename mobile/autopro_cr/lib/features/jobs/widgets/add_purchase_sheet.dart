@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/api_client.dart';
 import '../../../models/inventory_models.dart';
 import '../../../models/job_models.dart';
 import 'inventory_part_search_field.dart';
@@ -111,7 +112,7 @@ class _AddPurchaseSheetState extends State<AddPurchaseSheet> {
       );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = userFacingError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

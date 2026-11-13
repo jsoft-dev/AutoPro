@@ -52,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = userFacingError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

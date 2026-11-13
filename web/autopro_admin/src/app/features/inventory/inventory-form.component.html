@@ -15,18 +15,27 @@
 @if (loading()) {
   <p class="muted">Loading…</p>
 } @else {
-  @if (error()) {
-    <div class="alert">{{ error() }}</div>
+  @if (pageError()) {
+    <div class="alert">{{ pageError() }}</div>
   }
 
   <form class="card form" (submit)="submit($event)">
       <label>
         <span>Part number</span>
-        <input type="text" name="partNumber" [(ngModel)]="partNumber" required autocomplete="off" />
+        <input
+          type="text"
+          name="partNumber"
+          [(ngModel)]="partNumber"
+          [class.field-invalid]="!!fieldErrors.get('partNumber')"
+          required
+          autocomplete="off"
+        />
+        <app-field-error [message]="fieldErrors.get('partNumber')" />
       </label>
       <label>
         <span>Name</span>
-        <input type="text" name="name" [(ngModel)]="name" required />
+        <input type="text" name="name" [(ngModel)]="name" [class.field-invalid]="!!fieldErrors.get('name')" required />
+        <app-field-error [message]="fieldErrors.get('name')" />
       </label>
       <label class="wide">
         <span>Notes (optional)</span>
@@ -39,20 +48,32 @@
             type="number"
             name="quantityOnHand"
             [(ngModel)]="quantityOnHand"
+            [class.field-invalid]="!!fieldErrors.get('quantityOnHand')"
             min="0"
             step="0.001"
             required
           />
+          <app-field-error [message]="fieldErrors.get('quantityOnHand')" />
         </label>
         <label>
           <span>Default unit price (LKR)</span>
-          <input type="number" name="unitPrice" [(ngModel)]="unitPrice" min="0" step="0.01" required />
+          <input
+            type="number"
+            name="unitPrice"
+            [(ngModel)]="unitPrice"
+            [class.field-invalid]="!!fieldErrors.get('unitPrice')"
+            min="0"
+            step="0.01"
+            required
+          />
+          <app-field-error [message]="fieldErrors.get('unitPrice')" />
         </label>
       </div>
       <label class="checkbox">
         <input type="checkbox" name="isActive" [(ngModel)]="isActive" />
         <span>Active — visible in mobile inventory search</span>
       </label>
+      <app-field-error [message]="fieldErrors.get('submit')" />
       <div class="form-actions">
         <button type="submit" class="primary" [disabled]="saving()">
           {{ saving() ? 'Saving…' : createMode() ? 'Create part' : 'Save changes' }}

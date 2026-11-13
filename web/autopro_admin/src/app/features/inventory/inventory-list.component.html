@@ -51,12 +51,17 @@
           <th class="num">On hand</th>
           <th class="num">Unit price</th>
           <th>Status</th>
-          <th></th>
+          <th>Added</th>
         </tr>
       </thead>
       <tbody>
         @for (p of items(); track p.id) {
-          <tr [class.inactive]="!p.isActive">
+          <tr
+            class="row-nav"
+            tabindex="0"
+            [class.inactive]="!p.isActive"
+            [routerLink]="['/inventory', p.id]"
+          >
             <td class="mono">{{ p.partNumber }}</td>
             <td>{{ p.name }}</td>
             <td class="num">{{ p.quantityOnHand }}</td>
@@ -68,12 +73,17 @@
                 <span class="badge muted">Inactive</span>
               }
             </td>
-            <td class="actions">
-              <a [routerLink]="['/inventory', p.id]">Edit</a>
-            </td>
+            <td class="muted">{{ p.createdAtUtc | date: 'medium' }}</td>
           </tr>
         }
       </tbody>
     </table>
   </div>
+  <app-pagination
+    [page]="page()"
+    [pageSize]="pageSize()"
+    [totalCount]="totalCount()"
+    [disabled]="loading()"
+    (pageChange)="goToPage($event)"
+  />
 }

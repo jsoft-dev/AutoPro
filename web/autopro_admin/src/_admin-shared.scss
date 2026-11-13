@@ -1,0 +1,176 @@
+// Shared admin page patterns (global so new routes stay consistent).
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.65rem;
+}
+
+.lede {
+  margin: 0.35rem 0 0;
+  color: var(--ap-muted);
+}
+
+.page-header .actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.card {
+  background: var(--ap-card);
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+  background: var(--ap-card);
+}
+
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table-wrap th,
+.table-wrap td {
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--ap-border);
+}
+
+.table-wrap tr:last-child td {
+  border-bottom: none;
+}
+
+.table-wrap th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ap-muted);
+  background: #fafbfd;
+}
+
+.table-wrap th.num,
+.table-wrap td.num {
+  text-align: right;
+}
+
+.table-wrap tbody tr.row-nav {
+  cursor: pointer;
+}
+
+.table-wrap tbody tr.row-nav:hover td {
+  background: #f0f4fa;
+}
+
+.table-wrap tbody tr.row-nav:focus-visible {
+  outline: 2px solid var(--ap-primary);
+  outline-offset: -2px;
+}
+
+.muted {
+  color: var(--ap-muted);
+}
+
+.alert {
+  padding: 0.65rem 0.75rem;
+  background: #ffebee;
+  color: var(--ap-danger);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.notice {
+  padding: 0.65rem 0.75rem;
+  background: #e8f5e9;
+  color: var(--ap-success);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.ghost {
+  border: 1px solid var(--ap-border);
+  background: var(--ap-card);
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--ap-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.ghost:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.9rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--ap-primary);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--ap-primary-dark);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.table-wrap input[type='number'],
+.table-wrap input[type='text'],
+.table-wrap input[type='search'] {
+  width: 100%;
+  max-width: 9rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--ap-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  text-align: right;
+}
+
+.table-wrap input:focus {
+  outline: 2px solid rgba(13, 71, 161, 0.25);
+  border-color: var(--ap-primary);
+}
+
+.form-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}

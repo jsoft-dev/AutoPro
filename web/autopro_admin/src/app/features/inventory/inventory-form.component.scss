@@ -59,6 +59,10 @@ textarea {
   font-family: inherit;
 }
 
+.field-invalid {
+  border-color: var(--ap-danger) !important;
+}
+
 .wide {
   width: 100%;
 }

@@ -58,6 +58,71 @@
         </dl>
       </section>
     </div>
+
+    <section class="card history">
+      <h2>Job history</h2>
+      <p class="history-lede muted">
+        Workshop visits for this vehicle — parts and notes only, without pricing.
+      </p>
+      @if (jobHistory().length === 0) {
+        <p class="muted">No jobs recorded for this vehicle yet.</p>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Type</th>
+                <th class="num">Odometer</th>
+                <th>Purchases</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (job of jobHistory(); track job.id) {
+                <tr class="row-nav" tabindex="0" [routerLink]="['/jobs', job.id]">
+                  <td>
+                    <span class="mono job-num">{{ job.jobNumber }}</span>
+                    <span class="job-when muted">{{ job.createdAtUtc | date: 'mediumDate' }}</span>
+                    <app-job-status-chip [status]="job.status" />
+                  </td>
+                  <td>{{ job.jobTypeLabel }}</td>
+                  <td class="num">
+                    @if (job.odometerReading != null) {
+                      {{ job.odometerReading | number }} km
+                    } @else {
+                      —
+                    }
+                  </td>
+                  <td class="lines">
+                    @if (job.purchases.length === 0) {
+                      <span class="muted">—</span>
+                    } @else {
+                      <ul>
+                        @for (p of job.purchases; track $index) {
+                          <li>{{ formatJobHistoryPurchase(p) }}</li>
+                        }
+                      </ul>
+                    }
+                  </td>
+                  <td class="lines">
+                    @if (vehicleJobInformationLines(job).length === 0) {
+                      <span class="muted">—</span>
+                    } @else {
+                      <ul>
+                        @for (line of vehicleJobInformationLines(job); track line) {
+                          <li>{{ line }}</li>
+                        }
+                      </ul>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
   </div>
 
   @if (showPrint() && qrDataUrl(); as src) {

@@ -20,6 +20,19 @@ export interface InventoryDetail {
   updatedAtUtc: string | null;
 }
 
+export interface InventorySearchItem {
+  id: string;
+  partNumber: string;
+  name: string;
+  quantityOnHand: number;
+  unitPrice: number;
+}
+
+export interface InventorySearchPage {
+  items: InventorySearchItem[];
+  hasMore: boolean;
+}
+
 export interface InventoryWritePayload {
   partNumber: string;
   name: string;
