@@ -1,91 +1,55 @@
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Logging;
+using AutoPro.Domain.Entities;
+using AutoPro.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace AutoPro.Infrastructure.Services;
 
-public class OrganizationLogoStore(IWebHostEnvironment env, ILogger<OrganizationLogoStore> logger)
+public class OrganizationLogoStore(AutoProDbContext db)
 {
-    private const string FolderName = "organization";
-    private const string FileBaseName = "logo";
+    public static bool HasLogoData(OrganizationSettings? row) =>
+        row?.LogoData is { Length: > 0 };
 
-    private string DirectoryPath =>
-        Path.Combine(env.ContentRootPath, "AppData", FolderName);
-
-    public bool HasLogo()
+    public async Task SaveAsync(Stream content, string contentType, CancellationToken ct)
     {
-        var path = ResolveExistingPath();
-        return path is not null;
-    }
+        await using var ms = new MemoryStream();
+        await content.CopyToAsync(ms, ct);
+        var bytes = ms.ToArray();
+        if (bytes.Length == 0)
+            throw new InvalidOperationException("Logo file is empty.");
 
-    public string? ResolveExistingPath()
-    {
-        if (!Directory.Exists(DirectoryPath))
-            return null;
-
-        return Directory
-            .EnumerateFiles(DirectoryPath, $"{FileBaseName}.*")
-            .OrderByDescending(File.GetLastWriteTimeUtc)
-            .FirstOrDefault();
-    }
-
-    public async Task SaveAsync(Stream content, string contentType, string originalFileName, CancellationToken ct)
-    {
-        var ext = GuessExtension(contentType, originalFileName);
-        if (ext is null)
+        var normalizedType = contentType.Split(';', 2)[0].Trim().ToLowerInvariant();
+        if (normalizedType is not ("image/png" or "image/jpeg" or "image/webp"))
             throw new InvalidOperationException("Logo must be PNG, JPEG, or WebP.");
 
-        Directory.CreateDirectory(DirectoryPath);
-
-        foreach (var existing in Directory.EnumerateFiles(DirectoryPath, $"{FileBaseName}.*"))
+        var row = await db.OrganizationSettings
+            .FirstOrDefaultAsync(o => o.Id == OrganizationSettings.SingletonId, ct);
+        if (row is null)
         {
-            try
+            row = new OrganizationSettings
             {
-                File.Delete(existing);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Could not delete old organization logo {Path}", existing);
-            }
+                Id = OrganizationSettings.SingletonId,
+                OrganizationName = string.Empty,
+                UpdatedAtUtc = DateTime.UtcNow,
+            };
+            db.OrganizationSettings.Add(row);
         }
 
-        var targetPath = Path.Combine(DirectoryPath, $"{FileBaseName}{ext}");
-        await using var fs = File.Create(targetPath);
-        await content.CopyToAsync(fs, ct);
+        row.LogoData = bytes;
+        row.LogoContentType = normalizedType;
+        row.UpdatedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
     }
 
-    public void Delete()
+    public async Task ClearAsync(CancellationToken ct)
     {
-        if (!Directory.Exists(DirectoryPath))
+        var row = await db.OrganizationSettings
+            .FirstOrDefaultAsync(o => o.Id == OrganizationSettings.SingletonId, ct);
+        if (row is null)
             return;
 
-        foreach (var file in Directory.EnumerateFiles(DirectoryPath, $"{FileBaseName}.*"))
-        {
-            try
-            {
-                File.Delete(file);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Could not delete organization logo {Path}", file);
-            }
-        }
-    }
-
-    private static string? GuessExtension(string contentType, string originalFileName)
-    {
-        var type = contentType.Split(';', 2)[0].Trim().ToLowerInvariant();
-        return type switch
-        {
-            "image/png" => ".png",
-            "image/jpeg" => ".jpg",
-            "image/webp" => ".webp",
-            _ => Path.GetExtension(originalFileName).ToLowerInvariant() switch
-            {
-                ".png" => ".png",
-                ".jpg" or ".jpeg" => ".jpg",
-                ".webp" => ".webp",
-                _ => null,
-            },
-        };
+        row.LogoData = null;
+        row.LogoContentType = null;
+        row.UpdatedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
     }
 }

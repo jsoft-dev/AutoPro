@@ -1,3 +1,4 @@
+using AutoPro.Application.Billing;
 using AutoPro.Infrastructure;
 using AutoPro.Infrastructure.Persistence;
 using Microsoft.OpenApi.Models;
@@ -50,6 +51,9 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AutoProDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Seed");
     await DataSeeder.SeedAsync(db, logger);
+
+    var invoiceFinalizer = scope.ServiceProvider.GetRequiredService<IJobInvoiceFinalizer>();
+    await JobInvoiceBackfill.RunAsync(db, invoiceFinalizer, logger);
 }
 
 var enableSwagger = app.Environment.IsDevelopment()

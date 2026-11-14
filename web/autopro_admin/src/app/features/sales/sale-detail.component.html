@@ -46,71 +46,44 @@
       <h2>Items on this sale</h2>
 
       @if (isEditable()) {
-        <div class="add-item-panel">
-          <p class="add-item-panel__lead">Add from shop stock</p>
-
-          <app-inventory-part-search-field
-            class="add-item-picker"
-            [class.field-invalid-wrap]="!!lineErrors.get('part')"
-            [value]="selectedPart()"
-            (valueChange)="onInventoryPartChange($event)"
-          />
-          <app-field-error [message]="lineErrors.get('part')" />
-
-          @if (selectedPart(); as part) {
-            <form class="add-item-compose" [formGroup]="lineForm" (ngSubmit)="addLine()">
-              <table class="add-item-compose__summary" aria-label="Selected part">
-                <tbody>
-                  <tr>
-                    <th scope="row">Part</th>
-                    <td>
-                      <strong>{{ part.name }}</strong>
-                      <span class="add-item-compose__sku">{{ part.partNumber }}</span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">In stock</th>
-                    <td>{{ part.quantityOnHand }}</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <div class="add-item-compose__row">
-                <label class="add-item-field">
-                  <span class="add-item-field__label">Qty</span>
-                  <input
-                    formControlName="quantity"
-                    type="number"
-                    min="0"
-                    step="any"
-                    inputmode="decimal"
-                    [class.field-invalid]="lineFieldInvalid('quantity')"
-                  />
-                  <app-field-error [message]="lineErrors.get('quantity')" />
-                </label>
-                <label class="add-item-field">
-                  <span class="add-item-field__label">Unit price (LKR)</span>
-                  <input
-                    formControlName="unitPrice"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    inputmode="decimal"
-                    [class.field-invalid]="lineFieldInvalid('unitPrice')"
-                  />
-                  <app-field-error [message]="lineErrors.get('unitPrice')" />
-                </label>
-              </div>
-
-              <app-field-error [message]="lineErrors.get('submit')" />
-              <button type="submit" class="btn-primary btn-add-line" [disabled]="addingPurchase()">
-                {{ addingPurchase() ? 'Adding…' : 'Add to sale' }}
+        @if (!showAddItemPicker()) {
+          <button
+            type="button"
+            class="btn-add-item"
+            [disabled]="addingPurchase()"
+            (click)="openAddItemPicker()"
+          >
+            Add item
+          </button>
+        } @else {
+          <div class="add-item-panel">
+            <div class="add-item-panel__head">
+              <p class="add-item-panel__lead">Add from shop stock</p>
+              <button
+                type="button"
+                class="add-item-panel__cancel"
+                [disabled]="addingPurchase()"
+                (click)="cancelAddItemPicker()"
+              >
+                Cancel
               </button>
-            </form>
-          } @else {
-            <p class="add-item-panel__hint">Pick a part above — then enter quantity and add it to the sale.</p>
-          }
-        </div>
+            </div>
+
+            <app-inventory-part-search-field
+              class="add-item-picker"
+              [class.field-invalid-wrap]="!!lineErrors.get('part')"
+              [value]="selectedPart()"
+              (valueChange)="onAddItemPartSelected($event)"
+            />
+            <app-field-error [message]="lineErrors.get('part')" />
+            <app-field-error [message]="lineErrors.get('quantity')" />
+            <app-field-error [message]="lineErrors.get('submit')" />
+
+            @if (addingPurchase()) {
+              <p class="add-item-panel__status muted">Adding to sale…</p>
+            }
+          </div>
+        }
       }
 
       @if (j.invoice) {
@@ -144,7 +117,7 @@
           </table>
         }
       } @else if (j.purchases.length === 0) {
-        <p class="muted">No items yet — search inventory above and add to the sale.</p>
+        <p class="muted">No items yet — use Add item to pick from shop stock.</p>
       } @else {
         <table class="lines">
           <thead>

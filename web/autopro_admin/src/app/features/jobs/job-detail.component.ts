@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, viewChild } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -66,6 +66,7 @@ export class JobDetailComponent implements OnInit {
   readonly resetting = signal(false);
   readonly addingPurchase = signal(false);
   readonly selectedPart = signal<InventorySearchItem | null>(null);
+  readonly showAddItemPicker = signal(false);
   readonly showBill = signal(false);
   readonly organization = signal<OrganizationSettings | null>(null);
 
@@ -80,6 +81,8 @@ export class JobDetailComponent implements OnInit {
     unitPrice: [0],
     vendorName: [''],
   });
+
+  private readonly addItemSearch = viewChild(InventoryPartSearchFieldComponent);
 
   readonly lineTotal = lineTotal;
   readonly statusLabel = statusLabel;
@@ -134,18 +137,37 @@ export class JobDetailComponent implements OnInit {
 
   canAddPurchase(): boolean {
     const j = this.job();
-    if (!j || j.invoice) return false;
-    return j.status === 'OnGoing' || j.status === 'OnHold';
+    if (!j || j.status === 'Closed' || j.status === 'Cancelled') return false;
+    return j.status === 'OnGoing' || j.status === 'OnHold' || j.status === 'Completed';
   }
 
-  onInventoryPartChange(part: InventorySearchItem | null): void {
+  openAddItemPicker(): void {
+    if (this.addingPurchase()) return;
+    this.purchaseErrors.clear();
+    this.selectedPart.set(null);
+    this.purchaseForm.reset({
+      source: 'Inventory',
+      description: '',
+      quantity: 1,
+      unitPrice: 0,
+      vendorName: '',
+    });
+    this.showAddItemPicker.set(true);
+    setTimeout(() => this.addItemSearch()?.openPanel(), 0);
+  }
+
+  cancelAddItemPicker(): void {
+    if (this.addingPurchase()) return;
+    this.showAddItemPicker.set(false);
+    this.selectedPart.set(null);
+    this.purchaseErrors.clear();
+  }
+
+  onAddItemPartSelected(part: InventorySearchItem | null): void {
+    if (!part || this.addingPurchase()) return;
     this.selectedPart.set(part);
     this.purchaseErrors.clear('part');
-    if (part) {
-      this.purchaseForm.patchValue({ description: part.name, unitPrice: part.unitPrice });
-    } else {
-      this.purchaseForm.patchValue({ description: '', unitPrice: 0 });
-    }
+    this.submitInventoryPurchase(part, 1, part.unitPrice, part.name);
   }
 
   onPurchaseSourceChange(source: PurchaseSource): void {
@@ -156,30 +178,22 @@ export class JobDetailComponent implements OnInit {
       this.purchaseForm.patchValue({ description: '', unitPrice: 0 });
     } else {
       this.purchaseForm.patchValue({ description: '', unitPrice: 0, vendorName: '' });
+      setTimeout(() => this.addItemSearch()?.openPanel(), 0);
     }
   }
 
-  addPurchaseLine(): void {
+  addExternalPurchaseLine(): void {
     const j = this.job();
     if (!j || !this.canAddPurchase()) return;
 
     const raw = this.purchaseForm.getRawValue();
-    const source = raw.source;
     const description = raw.description.trim();
     const quantity = raw.quantity;
     const unitPrice = raw.unitPrice;
     const vendorName = raw.vendorName.trim();
 
-    this.purchaseErrors.clear('part', 'description', 'quantity', 'unitPrice', 'vendor', 'submit');
+    this.purchaseErrors.clear('description', 'quantity', 'unitPrice', 'vendor', 'submit');
 
-    if (source === 'Inventory' && !this.selectedPart()) {
-      this.purchaseErrors.set('part', 'Choose a part from shop inventory.');
-      return;
-    }
-    if (source === 'Inventory' && this.selectedPart() && quantity > this.selectedPart()!.quantityOnHand) {
-      this.purchaseErrors.set('quantity', `Only ${this.selectedPart()!.quantityOnHand} on hand for this part.`);
-      return;
-    }
     if (!description) {
       this.purchaseErrors.set('description', 'Enter a description for this line.');
       return;
@@ -192,40 +206,94 @@ export class JobDetailComponent implements OnInit {
       this.purchaseErrors.set('unitPrice', 'Unit price cannot be negative.');
       return;
     }
-    if (source === 'ExternalVendor' && !vendorName) {
+    if (!vendorName) {
       this.purchaseErrors.set('vendor', 'Vendor name is required for external purchases.');
       return;
     }
 
+    this.submitPurchase({
+      source: 'ExternalVendor',
+      inventoryItemId: null,
+      description,
+      quantity,
+      unitPrice,
+      vendorName,
+    });
+  }
+
+  private submitInventoryPurchase(
+    part: InventorySearchItem,
+    quantity: number,
+    unitPrice: number,
+    description: string,
+  ): void {
+    this.purchaseErrors.clear('part', 'quantity', 'unitPrice', 'submit');
+
+    const desc = description.trim() || part.name;
+
+    if (quantity <= 0) {
+      this.purchaseErrors.set('quantity', 'Quantity must be greater than zero.');
+      return;
+    }
+    if (unitPrice < 0) {
+      this.purchaseErrors.set('unitPrice', 'Unit price cannot be negative.');
+      return;
+    }
+    if (quantity > part.quantityOnHand) {
+      this.purchaseErrors.set(
+        'quantity',
+        part.quantityOnHand === 0
+          ? 'This part is out of stock.'
+          : `Only ${part.quantityOnHand} on hand for this part.`,
+      );
+      return;
+    }
+
+    this.submitPurchase({
+      source: 'Inventory',
+      inventoryItemId: part.id,
+      description: desc,
+      quantity,
+      unitPrice,
+      vendorName: null,
+    });
+  }
+
+  private submitPurchase(payload: {
+    source: PurchaseSource;
+    inventoryItemId: string | null;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    vendorName: string | null;
+  }): void {
+    const j = this.job();
+    if (!j || !this.canAddPurchase()) return;
+
     this.addingPurchase.set(true);
-    this.jobsApi
-      .addPurchase(j.id, {
-        source,
-        inventoryItemId: source === 'Inventory' ? this.selectedPart()!.id : null,
-        description,
-        quantity,
-        unitPrice,
-        vendorName: source === 'ExternalVendor' ? vendorName : null,
-      })
-      .subscribe({
-        next: (updated) => {
-          this.job.set(updated);
-          this.addingPurchase.set(false);
-          this.purchaseForm.reset({
-            source: 'Inventory',
-            description: '',
-            quantity: 1,
-            unitPrice: 0,
-            vendorName: '',
-          });
+    this.jobsApi.addPurchase(j.id, payload).subscribe({
+      next: (updated) => {
+        this.job.set(updated);
+        this.addingPurchase.set(false);
+        this.purchaseForm.reset({
+          source: 'Inventory',
+          description: '',
+          quantity: 1,
+          unitPrice: 0,
+          vendorName: '',
+        });
+        this.selectedPart.set(null);
+        this.purchaseErrors.clear();
+        this.showAddItemPicker.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.purchaseErrors.set('submit', err.error?.message ?? 'Could not add purchase line.');
+        this.addingPurchase.set(false);
+        if (payload.source === 'Inventory') {
           this.selectedPart.set(null);
-          this.purchaseErrors.clear();
-        },
-        error: (err: HttpErrorResponse) => {
-          this.purchaseErrors.set('submit', err.error?.message ?? 'Could not add purchase line.');
-          this.addingPurchase.set(false);
-        },
-      });
+        }
+      },
+    });
   }
 
   purchaseFieldInvalid(field: 'description' | 'quantity' | 'unitPrice' | 'vendor'): boolean {
@@ -325,7 +393,11 @@ export class JobDetailComponent implements OnInit {
   }
 
   isEstimateBill(j: JobDetail): boolean {
-    return !j.invoice && j.status !== 'Closed';
+    return j.status !== 'Closed';
+  }
+
+  invoiceLines(j: JobDetail) {
+    return j.invoice?.lineItems ?? [];
   }
 
   organizationName(): string {

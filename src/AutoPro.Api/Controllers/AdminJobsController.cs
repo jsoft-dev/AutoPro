@@ -41,14 +41,7 @@ public class AdminJobsController(
         if (!JobStatusRules.CanAdministrativeOfficerClose(job.Status))
             return BadRequest(new { message = "Only completed jobs can be closed after payment." });
 
-        if (job.Invoice is null)
-        {
-            await invoiceFinalizer.FinalizeForJobAsync(job.Id, ct);
-            await db.SaveChangesAsync(ct);
-            await db.Entry(job).Reference(j => j.Invoice).Query()
-                .Include(i => i!.LineItems)
-                .LoadAsync(ct);
-        }
+        await invoiceFinalizer.FinalizeForJobAsync(job.Id, ct);
 
         var from = job.Status;
         job.Status = JobStatus.Closed;
@@ -75,6 +68,7 @@ public class AdminJobsController(
         try
         {
             await db.SaveChangesAsync(ct);
+            await invoiceFinalizer.StampFinalizedAtCloseAsync(job.Id, ct);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -114,11 +108,9 @@ public class AdminJobsController(
         if (job is null) return NotFound();
 
         if (job.Invoice is not null)
-        {
             db.JobInvoiceLineItems.RemoveRange(job.Invoice.LineItems);
-            db.JobInvoices.Remove(job.Invoice);
-            job.Invoice = null;
-        }
+        else
+            await invoiceFinalizer.EnsureForJobAsync(job.Id, ct);
 
         foreach (var line in job.PurchaseLines.ToList())
         {

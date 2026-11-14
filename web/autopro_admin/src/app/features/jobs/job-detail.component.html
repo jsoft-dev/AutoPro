@@ -70,41 +70,54 @@
 
       <section class="card total-card">
         <h2>Charges</h2>
-        @if (j.invoice) {
-          <p class="total">{{ chargeTotal(j) | currency: 'LKR ' : 'symbol' : '1.2-2' }}</p>
-          <p class="muted small">Invoice total (fixed at completion)</p>
-        } @else {
-          <dl class="charge-estimate">
-            <div>
-              <dt>Service charge ({{ j.jobTypeLabel }})</dt>
-              <dd>{{ effectiveServiceChargeLkr(j) | currency: 'LKR ' : 'symbol' : '1.2-2' }}</dd>
-            </div>
-            <div>
-              <dt>Purchases</dt>
-              <dd>{{ j.purchasesTotal | currency: 'LKR ' : 'symbol' : '1.2-2' }}</dd>
-            </div>
-          </dl>
-          <p class="total-label">Estimated total</p>
-          <p class="total">{{ chargeTotal(j) | currency: 'LKR ' : 'symbol' : '1.2-2' }}</p>
-          <p class="muted small">Service charge is snapshotted when the CR completes the job.</p>
-        }
+        <p class="total">{{ chargeTotal(j) | currency: 'LKR ' : 'symbol' : '1.2-2' }}</p>
+        <p class="muted small">
+          @if (j.status === 'Closed') {
+            Invoice total
+          } @else if (invoiceLines(j).length === 0) {
+            No lines on the invoice yet
+          } @else {
+            Running invoice total
+          }
+        </p>
         @if (canReprint()) {
           <button type="button" class="secondary" (click)="printBill()">Print bill</button>
         }
       </section>
     </div>
 
-    <section class="card">
-      <h2>{{ j.invoice ? 'Invoice' : 'Purchases (pending invoice)' }}</h2>
+    <section class="card invoice-card">
+      <h2>Invoice</h2>
       @if (canAddPurchase()) {
-        <div class="purchase-add">
-          <p class="muted small">Add parts from shop stock or external vendors while the job is in progress.</p>
-          <form [formGroup]="purchaseForm" (ngSubmit)="addPurchaseLine()">
-            <div class="source-toggle" role="group" aria-label="Purchase source">
+        @if (!showAddItemPicker()) {
+          <button
+            type="button"
+            class="btn-add-item"
+            [disabled]="addingPurchase()"
+            (click)="openAddItemPicker()"
+          >
+            Add item
+          </button>
+        } @else {
+          <div class="add-item-panel">
+            <div class="add-item-panel__head">
+              <p class="add-item-panel__lead">Add to invoice</p>
+              <button
+                type="button"
+                class="add-item-panel__cancel"
+                [disabled]="addingPurchase()"
+                (click)="cancelAddItemPicker()"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div class="source-toggle source-toggle--panel" role="group" aria-label="Purchase source">
               <button
                 type="button"
                 class="source-option"
                 [class.source-option--active]="purchaseForm.controls.source.value === 'Inventory'"
+                [disabled]="addingPurchase()"
                 (click)="onPurchaseSourceChange('Inventory')"
               >
                 Shop inventory
@@ -113,6 +126,7 @@
                 type="button"
                 class="source-option"
                 [class.source-option--active]="purchaseForm.controls.source.value === 'ExternalVendor'"
+                [disabled]="addingPurchase()"
                 (click)="onPurchaseSourceChange('ExternalVendor')"
               >
                 External vendor
@@ -121,108 +135,77 @@
 
             @if (purchaseForm.controls.source.value === 'Inventory') {
               <app-inventory-part-search-field
-                class="purchase-part-picker"
+                class="add-item-picker"
                 [class.field-invalid-wrap]="!!purchaseErrors.get('part')"
                 [value]="selectedPart()"
-                (valueChange)="onInventoryPartChange($event)"
+                (valueChange)="onAddItemPartSelected($event)"
               />
               <app-field-error [message]="purchaseErrors.get('part')" />
-            }
-
-            <label>
-              Description
-              <input
-                formControlName="description"
-                [class.field-invalid]="purchaseFieldInvalid('description')"
-                [readonly]="purchaseForm.controls.source.value === 'Inventory' && !!selectedPart()"
-              />
-              <app-field-error [message]="purchaseErrors.get('description')" />
-            </label>
-
-            <div class="purchase-row">
-              <label>
-                Quantity
-                <input
-                  formControlName="quantity"
-                  type="number"
-                  min="0"
-                  step="any"
-                  [class.field-invalid]="purchaseFieldInvalid('quantity')"
-                />
-                <app-field-error [message]="purchaseErrors.get('quantity')" />
-              </label>
-              <label>
-                Unit price (LKR)
-                <input
-                  formControlName="unitPrice"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  [class.field-invalid]="purchaseFieldInvalid('unitPrice')"
-                />
-                <app-field-error [message]="purchaseErrors.get('unitPrice')" />
-              </label>
-            </div>
-
-            @if (purchaseForm.controls.source.value === 'ExternalVendor') {
-              <label>
-                Vendor name
-                <input formControlName="vendorName" [class.field-invalid]="purchaseFieldInvalid('vendor')" />
-                <app-field-error [message]="purchaseErrors.get('vendor')" />
-              </label>
-            }
-
-            <app-field-error [message]="purchaseErrors.get('submit')" />
-            <button type="submit" class="primary" [disabled]="addingPurchase()">
-              {{ addingPurchase() ? 'Adding…' : 'Add purchase line' }}
-            </button>
-          </form>
-        </div>
-      }
-      @if (j.invoice) {
-        @if (j.invoice.lineItems.length === 0) {
-          <p class="muted">No invoice lines.</p>
-        } @else {
-          <table class="lines">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Type</th>
-                <th>Source</th>
-                <th class="num">Qty</th>
-                <th class="num">Unit</th>
-                <th class="num">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (line of j.invoice.lineItems; track line.id) {
-                <tr>
-                  <td>
-                    {{ line.description }}
-                    @if (line.inventoryPartNumber) {
-                      <span class="vendor">({{ line.inventoryPartNumber }})</span>
-                    }
-                    @if (line.vendorName) {
-                      <span class="vendor">({{ line.vendorName }})</span>
-                    }
-                  </td>
-                  <td>{{ invoiceKindLabel(line.kind) }}</td>
-                  <td>{{ lineItemSourceLabel(line.source) }}</td>
-                  <td class="num">{{ line.quantity }}</td>
-                  <td class="num">{{ line.unitPrice | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
-                  <td class="num">{{ lineTotal(line) | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
-                </tr>
+              <app-field-error [message]="purchaseErrors.get('quantity')" />
+              <app-field-error [message]="purchaseErrors.get('submit')" />
+              @if (addingPurchase()) {
+                <p class="add-item-panel__status muted">Adding to invoice…</p>
               }
-            </tbody>
-          </table>
+            } @else {
+              <form class="purchase-add" [formGroup]="purchaseForm" (ngSubmit)="addExternalPurchaseLine()">
+                <label>
+                  Description
+                  <input
+                    formControlName="description"
+                    [class.field-invalid]="purchaseFieldInvalid('description')"
+                  />
+                  <app-field-error [message]="purchaseErrors.get('description')" />
+                </label>
+
+                <div class="purchase-row">
+                  <label>
+                    Quantity
+                    <input
+                      formControlName="quantity"
+                      type="number"
+                      min="0"
+                      step="any"
+                      [class.field-invalid]="purchaseFieldInvalid('quantity')"
+                    />
+                    <app-field-error [message]="purchaseErrors.get('quantity')" />
+                  </label>
+                  <label>
+                    Unit price (LKR)
+                    <input
+                      formControlName="unitPrice"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      [class.field-invalid]="purchaseFieldInvalid('unitPrice')"
+                    />
+                    <app-field-error [message]="purchaseErrors.get('unitPrice')" />
+                  </label>
+                </div>
+
+                <label>
+                  Vendor name
+                  <input formControlName="vendorName" [class.field-invalid]="purchaseFieldInvalid('vendor')" />
+                  <app-field-error [message]="purchaseErrors.get('vendor')" />
+                </label>
+
+                <app-field-error [message]="purchaseErrors.get('submit')" />
+                <button type="submit" class="primary" [disabled]="addingPurchase()">
+                  {{ addingPurchase() ? 'Adding…' : 'Add to invoice' }}
+                </button>
+              </form>
+            }
+          </div>
         }
-      } @else if (j.purchases.length === 0) {
-        <p class="muted">No purchase lines yet.</p>
+      }
+
+      @if (invoiceLines(j).length === 0) {
+        <p class="muted invoice-empty">No line items yet — use Add item or the customer rep app.</p>
       } @else {
         <table class="lines">
           <thead>
             <tr>
               <th>Description</th>
+              <th>Type</th>
               <th>Source</th>
               <th class="num">Qty</th>
               <th class="num">Unit</th>
@@ -230,7 +213,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (line of j.purchases; track line.id) {
+            @for (line of invoiceLines(j); track line.id) {
               <tr>
                 <td>
                   {{ line.description }}
@@ -241,7 +224,8 @@
                     <span class="vendor">({{ line.vendorName }})</span>
                   }
                 </td>
-                <td>{{ line.source === 'Inventory' ? 'In house' : 'Outsource' }}</td>
+                <td>{{ invoiceKindLabel(line.kind) }}</td>
+                <td>{{ lineItemSourceLabel(line.source) }}</td>
                 <td class="num">{{ line.quantity }}</td>
                 <td class="num">{{ line.unitPrice | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
                 <td class="num">{{ lineTotal(line) | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
@@ -250,6 +234,30 @@
           </tbody>
         </table>
       }
+
+      <footer class="invoice-footer">
+        <div class="invoice-footer__total">
+          <span>Total</span>
+          <strong>{{ chargeTotal(j) | currency: 'LKR ' : 'symbol' : '1.2-2' }}</strong>
+        </div>
+
+        @if (canClose()) {
+          <div class="invoice-footer__pay">
+            <p class="muted small">
+              The customer rep marked this job completed. Collect payment below to close the job.
+            </p>
+            <form [formGroup]="closeForm" (ngSubmit)="receivePaymentAndClose()">
+              <app-payment-method-select
+                formControlName="paymentMethod"
+                [error]="paymentErrors.get('paymentMethod')"
+              />
+              <button type="submit" class="primary" [disabled]="closing()">
+                {{ closing() ? 'Closing…' : 'Payment received — close job' }}
+              </button>
+            </form>
+          </div>
+        }
+      </footer>
     </section>
 
     <section class="card">
@@ -283,23 +291,6 @@
       </section>
     }
 
-    @if (canClose()) {
-      <section class="card payment-card">
-        <h2>Receive payment &amp; close</h2>
-        <p class="muted">
-          The customer rep marked this job completed. Collect payment, then close to finish.
-        </p>
-        <form [formGroup]="closeForm" (ngSubmit)="receivePaymentAndClose()">
-          <app-payment-method-select
-            formControlName="paymentMethod"
-            [error]="paymentErrors.get('paymentMethod')"
-          />
-          <button type="submit" class="primary" [disabled]="closing()">
-            {{ closing() ? 'Closing…' : 'Payment received — close job' }}
-          </button>
-        </form>
-      </section>
-    }
   </div>
 
   @if (canReprint() || showBill()) {
@@ -373,48 +364,20 @@
             </tr>
           </thead>
           <tbody>
-            @if (j.invoice) {
-              @for (line of j.invoice.lineItems; track line.id; let i = $index) {
-                <tr>
-                  <td class="bill-line-no">{{ i + 1 }}</td>
-                  <td>
-                    <span class="bill-line-desc">{{ line.description }}</span>
-                    @if (line.inventoryPartNumber) {
-                      <span class="bill-line-sub">Part {{ line.inventoryPartNumber }}</span>
-                    }
-                    <span class="bill-line-tag">{{ invoiceKindLabel(line.kind) }}</span>
-                  </td>
-                  <td class="num">{{ line.quantity }}</td>
-                  <td class="num">{{ line.unitPrice | number: '1.2-2' }}</td>
-                  <td class="num">{{ lineTotal(line) | number: '1.2-2' }}</td>
-                </tr>
-              }
-            } @else {
+            @for (line of invoiceLines(j); track line.id; let i = $index) {
               <tr>
-                <td class="bill-line-no">1</td>
+                <td class="bill-line-no">{{ i + 1 }}</td>
                 <td>
-                  <span class="bill-line-desc">Service charge — {{ j.jobTypeLabel }}</span>
-                  <span class="bill-line-tag">Service charge</span>
+                  <span class="bill-line-desc">{{ line.description }}</span>
+                  @if (line.inventoryPartNumber) {
+                    <span class="bill-line-sub">Part {{ line.inventoryPartNumber }}</span>
+                  }
+                  <span class="bill-line-tag">{{ invoiceKindLabel(line.kind) }}</span>
                 </td>
-                <td class="num">1</td>
-                <td class="num">{{ effectiveServiceChargeLkr(j) | number: '1.2-2' }}</td>
-                <td class="num">{{ effectiveServiceChargeLkr(j) | number: '1.2-2' }}</td>
+                <td class="num">{{ line.quantity }}</td>
+                <td class="num">{{ line.unitPrice | number: '1.2-2' }}</td>
+                <td class="num">{{ lineTotal(line) | number: '1.2-2' }}</td>
               </tr>
-              @for (line of j.purchases; track line.id; let i = $index) {
-                <tr>
-                  <td class="bill-line-no">{{ i + 2 }}</td>
-                  <td>
-                    <span class="bill-line-desc">{{ line.description }}</span>
-                    @if (line.inventoryPartNumber) {
-                      <span class="bill-line-sub">Part {{ line.inventoryPartNumber }}</span>
-                    }
-                    <span class="bill-line-tag">Purchase</span>
-                  </td>
-                  <td class="num">{{ line.quantity }}</td>
-                  <td class="num">{{ line.unitPrice | number: '1.2-2' }}</td>
-                  <td class="num">{{ lineTotal(line) | number: '1.2-2' }}</td>
-                </tr>
-              }
             }
           </tbody>
         </table>
@@ -425,28 +388,15 @@
               <p><strong>Payment</strong> {{ payNote }}</p>
             }
             @if (isEstimateBill(j)) {
-              <p class="bill-muted">
-                Totals are estimated until the job is completed and the invoice is finalized.
-              </p>
+              <p class="bill-muted">Totals may change until payment is received and the job is closed.</p>
             }
             <p class="bill-thanks">Thank you for your business.</p>
           </div>
           <div class="bill-totals">
-            @if (j.invoice) {
-              <div class="bill-total-row">
-                <span>Invoice total</span>
-                <span>{{ j.invoice.grandTotal | number: '1.2-2' }}</span>
-              </div>
-            } @else {
-              <div class="bill-total-row">
-                <span>Service charge</span>
-                <span>{{ effectiveServiceChargeLkr(j) | number: '1.2-2' }}</span>
-              </div>
-              <div class="bill-total-row">
-                <span>Parts &amp; purchases</span>
-                <span>{{ j.purchasesTotal | number: '1.2-2' }}</span>
-              </div>
-            }
+            <div class="bill-total-row">
+              <span>Invoice total</span>
+              <span>{{ chargeTotal(j) | number: '1.2-2' }}</span>
+            </div>
             <div class="bill-total-row bill-total-row--grand">
               <span>{{ isPaid(j) ? 'Amount paid' : 'Total due' }} (LKR)</span>
               <span>{{ chargeTotal(j) | number: '1.2-2' }}</span>

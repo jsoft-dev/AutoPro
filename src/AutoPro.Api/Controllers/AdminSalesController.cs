@@ -99,7 +99,17 @@ public class AdminSalesController(
             CreatedByUserId = CurrentUserId,
         };
 
+        var invoice = new JobInvoice
+        {
+            Id = Guid.NewGuid(),
+            ServiceJobId = job.Id,
+            ServiceJob = job,
+            FinalizedAtUtc = job.CreatedAtUtc,
+        };
+        job.Invoice = invoice;
+
         db.ServiceJobs.Add(job);
+        db.JobInvoices.Add(invoice);
         db.JobStatusHistories.Add(new JobStatusHistory
         {
             Id = Guid.NewGuid(),

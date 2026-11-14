@@ -274,6 +274,9 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<byte[]>("LogoData")
+                        .HasColumnType("bytea");
+
                     b.Property<string>("OrganizationName")
                         .IsRequired()
                         .HasMaxLength(200)

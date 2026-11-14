@@ -13,5 +13,8 @@ public class OrganizationSettings
 
     public string? LogoContentType { get; set; }
 
+    /// <summary>PNG/JPEG/WebP bytes (stored in Postgres so hosted API survives ephemeral disk).</summary>
+    public byte[]? LogoData { get; set; }
+
     public DateTime UpdatedAtUtc { get; set; }
 }

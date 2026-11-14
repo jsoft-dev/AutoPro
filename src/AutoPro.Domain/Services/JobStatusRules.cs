@@ -23,6 +23,9 @@ public static class JobStatusRules
   public static bool CanModifyPurchases(JobStatus status) =>
     status is JobStatus.OnGoing or JobStatus.OnHold;
 
+  public static bool CanAdministrativeOfficerModifyPurchases(JobStatus status) =>
+    status is JobStatus.OnGoing or JobStatus.OnHold or JobStatus.Completed;
+
   public static bool CanModifyJobDetails(JobStatus status) => CanModifyPurchases(status);
 
   public static bool CanAdministrativeOfficerClose(JobStatus status) =>

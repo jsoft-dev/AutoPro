@@ -68,7 +68,7 @@ public class AdminBusinessSettingsController(
         await using var stream = file.OpenReadStream();
         try
         {
-            await logoStore.SaveAsync(stream, contentType, file.FileName, ct);
+            await logoStore.SaveAsync(stream, contentType, ct);
         }
         catch (InvalidOperationException ex)
         {
@@ -76,23 +76,15 @@ public class AdminBusinessSettingsController(
         }
 
         var row = await EnsureOrganizationAsync(ct);
-        row.LogoContentType = contentType.Split(';', 2)[0].Trim();
-        row.UpdatedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
-
         return Ok(ToOrganizationResponse(row));
     }
 
     [HttpDelete("organization/logo")]
     public async Task<ActionResult<OrganizationSettingsResponse>> DeleteOrganizationLogo(CancellationToken ct)
     {
-        logoStore.Delete();
+        await logoStore.ClearAsync(ct);
 
         var row = await EnsureOrganizationAsync(ct);
-        row.LogoContentType = null;
-        row.UpdatedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
-
         return Ok(ToOrganizationResponse(row));
     }
 
@@ -193,7 +185,7 @@ public class AdminBusinessSettingsController(
 
     private OrganizationSettingsResponse ToOrganizationResponse(OrganizationSettings row)
     {
-        var hasLogo = logoStore.HasLogo();
+        var hasLogo = OrganizationLogoStore.HasLogoData(row);
         string? logoUrl = null;
         if (hasLogo)
         {

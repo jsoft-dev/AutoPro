@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, viewChild } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -58,6 +58,7 @@ export class SaleDetailComponent implements OnInit {
   readonly paying = signal(false);
   readonly addingPurchase = signal(false);
   readonly selectedPart = signal<InventorySearchItem | null>(null);
+  readonly showAddItemPicker = signal(false);
   readonly showBill = signal(false);
   readonly organization = signal<OrganizationSettings | null>(null);
 
@@ -70,11 +71,7 @@ export class SaleDetailComponent implements OnInit {
     paymentMethod: [''],
   });
 
-  readonly lineForm = this.fb.nonNullable.group({
-    description: [''],
-    quantity: [1],
-    unitPrice: [0],
-  });
+  private readonly addItemSearch = viewChild(InventoryPartSearchFieldComponent);
 
   readonly lineTotal = lineTotal;
 
@@ -158,32 +155,40 @@ export class SaleDetailComponent implements OnInit {
     return s === 'Closed' || s === 'Completed';
   }
 
-  onInventoryPartChange(part: InventorySearchItem | null): void {
-    this.selectedPart.set(part);
-    this.lineErrors.clear('part');
-    if (part) {
-      this.lineForm.patchValue({ description: part.name, unitPrice: part.unitPrice });
-    } else {
-      this.lineForm.patchValue({ description: '', unitPrice: 0 });
-    }
+  openAddItemPicker(): void {
+    if (this.addingPurchase()) return;
+    this.lineErrors.clear();
+    this.selectedPart.set(null);
+    this.showAddItemPicker.set(true);
+    setTimeout(() => this.addItemSearch()?.openPanel(), 0);
   }
 
-  addLine(): void {
+  cancelAddItemPicker(): void {
+    if (this.addingPurchase()) return;
+    this.showAddItemPicker.set(false);
+    this.selectedPart.set(null);
+    this.lineErrors.clear();
+  }
+
+  onAddItemPartSelected(part: InventorySearchItem | null): void {
+    if (!part || this.addingPurchase()) return;
+    this.selectedPart.set(part);
+    this.lineErrors.clear('part');
+    this.addPurchaseForPart(part, 1, part.unitPrice, part.name);
+  }
+
+  private addPurchaseForPart(
+    part: InventorySearchItem,
+    quantity: number,
+    unitPrice: number,
+    description: string,
+  ): void {
     const j = this.sale();
     if (!j || !this.isEditable()) return;
 
     this.lineErrors.clear('part', 'quantity', 'unitPrice', 'submit');
 
-    if (!this.selectedPart()) {
-      this.lineErrors.set('part', 'Choose a part from shop inventory.');
-      return;
-    }
-
-    const raw = this.lineForm.getRawValue();
-    const quantity = raw.quantity;
-    const unitPrice = raw.unitPrice;
-    const part = this.selectedPart()!;
-    const description = raw.description.trim() || part.name;
+    const desc = description.trim() || part.name;
 
     if (quantity <= 0) {
       this.lineErrors.set('quantity', 'Quantity must be greater than zero.');
@@ -194,7 +199,12 @@ export class SaleDetailComponent implements OnInit {
       return;
     }
     if (quantity > part.quantityOnHand) {
-      this.lineErrors.set('quantity', `Only ${part.quantityOnHand} on hand for this part.`);
+      this.lineErrors.set(
+        'quantity',
+        part.quantityOnHand === 0
+          ? 'This part is out of stock.'
+          : `Only ${part.quantityOnHand} on hand for this part.`,
+      );
       return;
     }
 
@@ -206,7 +216,7 @@ export class SaleDetailComponent implements OnInit {
           this.jobsApi.addPurchase(j.id, {
             source: 'Inventory',
             inventoryItemId: part.id,
-            description,
+            description: desc,
             quantity,
             unitPrice,
             vendorName: null,
@@ -217,13 +227,14 @@ export class SaleDetailComponent implements OnInit {
         next: (updated) => {
           this.applySale(updated);
           this.addingPurchase.set(false);
-          this.lineForm.reset({ description: '', quantity: 1, unitPrice: 0 });
           this.selectedPart.set(null);
+          this.showAddItemPicker.set(false);
           this.lineErrors.clear();
         },
         error: (err: HttpErrorResponse) => {
           this.lineErrors.set('submit', err.error?.message ?? 'Could not add line.');
           this.addingPurchase.set(false);
+          this.selectedPart.set(null);
         },
       });
   }
@@ -271,10 +282,6 @@ export class SaleDetailComponent implements OnInit {
       storeCustomerName: raw.storeCustomerName.trim() || null,
       notes: raw.notes.trim() || null,
     });
-  }
-
-  lineFieldInvalid(field: 'quantity' | 'unitPrice'): boolean {
-    return !!this.lineErrors.get(field);
   }
 
   officerName(): string {

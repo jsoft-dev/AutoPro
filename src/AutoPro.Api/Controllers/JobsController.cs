@@ -156,7 +156,17 @@ public class JobsController(
             Note = "Job taken at front desk."
         });
 
+        var invoice = new JobInvoice
+        {
+            Id = Guid.NewGuid(),
+            ServiceJobId = job.Id,
+            ServiceJob = job,
+            FinalizedAtUtc = job.CreatedAtUtc,
+        };
+        job.Invoice = invoice;
+
         db.ServiceJobs.Add(job);
+        db.JobInvoices.Add(invoice);
         await db.SaveChangesAsync(ct);
 
         job.Vehicle = vehicle;
@@ -239,7 +249,7 @@ public class JobsController(
         if (request.Status == JobStatus.Completed)
         {
             job.CompletedAtUtc = DateTime.UtcNow;
-            await invoiceFinalizer.FinalizeForJobAsync(job.Id, ct);
+            await invoiceFinalizer.EnsureServiceChargeOnCompletionAsync(job.Id, ct);
         }
 
         db.JobStatusHistories.Add(new JobStatusHistory
@@ -273,11 +283,22 @@ public class JobsController(
         [FromBody] AddPurchaseLineRequest request,
         CancellationToken ct)
     {
-        var job = await db.ServiceJobs.FirstOrDefaultAsync(j => j.Id == id, ct);
+        var job = await db.ServiceJobs
+            .Include(j => j.Invoice!).ThenInclude(i => i.LineItems)
+            .FirstOrDefaultAsync(j => j.Id == id, ct);
 
         if (job is null) return NotFound();
-        if (!JobStatusRules.CanModifyPurchases(job.Status))
+
+        var isAdmin = User.IsInRole("AdministrativeOfficer");
+        if (isAdmin)
+        {
+            if (!JobStatusRules.CanAdministrativeOfficerModifyPurchases(job.Status))
+                return BadRequest(new { message = "Purchases can only be added while the job is open or awaiting payment." });
+        }
+        else if (!JobStatusRules.CanModifyPurchases(job.Status))
+        {
             return BadRequest(new { message = "Purchases can only be added while the job is On Going or On Hold." });
+        }
 
         if (request.Source == PurchaseSource.ExternalVendor && string.IsNullOrWhiteSpace(request.VendorName))
             return BadRequest(new { message = "VendorName is required for external vendor purchases." });
@@ -320,7 +341,7 @@ public class JobsController(
             inventoryItem.UpdatedAtUtc = DateTime.UtcNow;
         }
 
-        db.JobPurchaseLines.Add(new JobPurchaseLine
+        var purchaseLine = new JobPurchaseLine
         {
             Id = Guid.NewGuid(),
             ServiceJobId = job.Id,
@@ -332,11 +353,13 @@ public class JobsController(
             VendorName = request.Source == PurchaseSource.ExternalVendor ? request.VendorName?.Trim() : null,
             CreatedAtUtc = DateTime.UtcNow,
             AddedByUserId = CurrentUserId
-        });
+        };
+        db.JobPurchaseLines.Add(purchaseLine);
 
         try
         {
             await db.SaveChangesAsync(ct);
+            await invoiceFinalizer.AddPurchaseLineAsync(job.Id, purchaseLine.Id, ct);
         }
         catch (DbUpdateConcurrencyException)
         {
