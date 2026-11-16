@@ -76,10 +76,61 @@
               (valueChange)="onAddItemPartSelected($event)"
             />
             <app-field-error [message]="lineErrors.get('part')" />
-            <app-field-error [message]="lineErrors.get('quantity')" />
-            <app-field-error [message]="lineErrors.get('submit')" />
 
-            @if (addingPurchase()) {
+            @if (selectedPart(); as part) {
+              <div class="add-item-compose" [formGroup]="lineForm">
+                <table class="add-item-compose__summary">
+                  <tbody>
+                    <tr>
+                      <th>Part</th>
+                      <td>
+                        {{ part.name }}
+                        <span class="add-item-compose__sku">{{ part.partNumber }}</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>On hand</th>
+                      <td>{{ part.quantityOnHand }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="add-item-compose__row">
+                  <label class="add-item-field">
+                    <span class="add-item-field__label">Quantity</span>
+                    <input
+                      formControlName="quantity"
+                      type="number"
+                      min="0"
+                      step="any"
+                      [class.field-invalid]="lineFieldInvalid('quantity')"
+                    />
+                    <app-field-error [message]="lineErrors.get('quantity')" />
+                  </label>
+                  <label class="add-item-field">
+                    <span class="add-item-field__label">Unit price (LKR)</span>
+                    <input
+                      formControlName="unitPrice"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      [class.field-invalid]="lineFieldInvalid('unitPrice')"
+                    />
+                    <app-field-error [message]="lineErrors.get('unitPrice')" />
+                  </label>
+                </div>
+
+                <app-field-error [message]="lineErrors.get('submit')" />
+                <button
+                  type="button"
+                  class="btn-primary btn-add-line"
+                  [disabled]="addingPurchase()"
+                  (click)="addInventoryLine()"
+                >
+                  {{ addingPurchase() ? 'Adding…' : 'Add to sale' }}
+                </button>
+              </div>
+            } @else if (addingPurchase()) {
               <p class="add-item-panel__status muted">Adding to sale…</p>
             }
           </div>

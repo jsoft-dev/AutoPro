@@ -71,6 +71,11 @@ export class SaleDetailComponent implements OnInit {
     paymentMethod: [''],
   });
 
+  readonly lineForm = this.fb.nonNullable.group({
+    quantity: [1],
+    unitPrice: [0],
+  });
+
   private readonly addItemSearch = viewChild(InventoryPartSearchFieldComponent);
 
   readonly lineTotal = lineTotal;
@@ -139,7 +144,8 @@ export class SaleDetailComponent implements OnInit {
 
   isEditable(): boolean {
     const j = this.sale();
-    if (!j || j.invoice) return false;
+    if (!j) return false;
+    if (j.status === 'Closed' || j.status === 'Cancelled') return false;
     return j.status === 'OnGoing' || j.status === 'OnHold';
   }
 
@@ -159,6 +165,7 @@ export class SaleDetailComponent implements OnInit {
     if (this.addingPurchase()) return;
     this.lineErrors.clear();
     this.selectedPart.set(null);
+    this.lineForm.reset({ quantity: 1, unitPrice: 0 });
     this.showAddItemPicker.set(true);
     setTimeout(() => this.addItemSearch()?.openPanel(), 0);
   }
@@ -168,13 +175,35 @@ export class SaleDetailComponent implements OnInit {
     this.showAddItemPicker.set(false);
     this.selectedPart.set(null);
     this.lineErrors.clear();
+    this.lineForm.reset({ quantity: 1, unitPrice: 0 });
   }
 
   onAddItemPartSelected(part: InventorySearchItem | null): void {
-    if (!part || this.addingPurchase()) return;
+    if (this.addingPurchase()) return;
     this.selectedPart.set(part);
-    this.lineErrors.clear('part');
-    this.addPurchaseForPart(part, 1, part.unitPrice, part.name);
+    this.lineErrors.clear('part', 'quantity', 'unitPrice', 'submit');
+    if (!part) {
+      this.lineForm.reset({ quantity: 1, unitPrice: 0 });
+      return;
+    }
+    this.lineForm.patchValue({
+      quantity: 1,
+      unitPrice: part.unitPrice,
+    });
+  }
+
+  lineFieldInvalid(field: 'quantity' | 'unitPrice'): boolean {
+    return !!this.lineErrors.get(field);
+  }
+
+  addInventoryLine(): void {
+    const part = this.selectedPart();
+    if (!part || this.addingPurchase()) {
+      if (!part) this.lineErrors.set('part', 'Select a part from shop stock.');
+      return;
+    }
+    const raw = this.lineForm.getRawValue();
+    this.addPurchaseForPart(part, raw.quantity, raw.unitPrice, part.name);
   }
 
   private addPurchaseForPart(
@@ -228,6 +257,7 @@ export class SaleDetailComponent implements OnInit {
           this.applySale(updated);
           this.addingPurchase.set(false);
           this.selectedPart.set(null);
+          this.lineForm.reset({ quantity: 1, unitPrice: 0 });
           this.showAddItemPicker.set(false);
           this.lineErrors.clear();
         },
