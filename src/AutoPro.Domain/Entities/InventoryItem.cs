@@ -8,6 +8,8 @@ public class InventoryItem
     public string? Notes { get; set; }
     public decimal QuantityOnHand { get; set; }
     public decimal UnitPrice { get; set; }
+    public Guid? SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }

@@ -12,6 +12,7 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
     public DbSet<JobPurchaseLine> JobPurchaseLines => Set<JobPurchaseLine>();
     public DbSet<JobStatusHistory> JobStatusHistories => Set<JobStatusHistory>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<JobTypeServicePrice> JobTypeServicePrices => Set<JobTypeServicePrice>();
     public DbSet<JobInvoice> JobInvoices => Set<JobInvoice>();
     public DbSet<JobInvoiceLineItem> JobInvoiceLineItems => Set<JobInvoiceLineItem>();
@@ -99,6 +100,19 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<Supplier>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.ContactPerson).HasMaxLength(200);
+            e.Property(x => x.Phone).HasMaxLength(32);
+            e.Property(x => x.Email).HasMaxLength(256);
+            e.Property(x => x.Address).HasMaxLength(500);
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.HasIndex(x => x.Name);
+            e.HasIndex(x => x.IsActive);
+        });
+
         modelBuilder.Entity<InventoryItem>(e =>
         {
             e.HasKey(x => x.Id);
@@ -109,6 +123,9 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
             e.Property(x => x.UnitPrice).HasPrecision(18, 2);
             e.HasIndex(x => x.PartNumber);
             e.HasIndex(x => x.IsActive);
+            e.HasIndex(x => x.SupplierId);
+            e.HasOne(x => x.Supplier).WithMany(s => s.InventoryItems).HasForeignKey(x => x.SupplierId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<JobPurchaseLine>(e =>

@@ -1,0 +1,76 @@
+<a class="back" routerLink="/suppliers">← Suppliers</a>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  @if (pageError()) {
+    <div class="alert">{{ pageError() }}</div>
+  }
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Vendors</p>
+      <h1>{{ createMode() ? 'Add supplier' : 'Edit supplier' }}</h1>
+      <p class="lede">
+        @if (createMode()) {
+          Create a vendor record to link with shop inventory parts.
+        } @else {
+          Update contact details or deactivate a supplier you no longer use.
+        }
+      </p>
+    </div>
+  </header>
+
+  <form class="card form" (submit)="submit($event)">
+    <label>
+      <span>Supplier name</span>
+      <input
+        type="text"
+        name="name"
+        [(ngModel)]="name"
+        [class.field-invalid]="!!fieldErrors.get('name')"
+        required
+        autocomplete="organization"
+      />
+      <app-field-error [message]="fieldErrors.get('name')" />
+    </label>
+    <label>
+      <span>Contact person (optional)</span>
+      <input type="text" name="contactPerson" [(ngModel)]="contactPerson" autocomplete="name" />
+    </label>
+    <div class="row">
+      <label>
+        <span>Phone (optional)</span>
+        <input type="tel" name="phone" [(ngModel)]="phone" autocomplete="tel" />
+      </label>
+      <label>
+        <span>Email (optional)</span>
+        <input type="email" name="email" [(ngModel)]="email" autocomplete="email" />
+      </label>
+    </div>
+    <label class="wide">
+      <span>Address (optional)</span>
+      <textarea name="address" rows="2" [(ngModel)]="address"></textarea>
+    </label>
+    <label class="wide">
+      <span>Notes (optional)</span>
+      <textarea name="notes" rows="2" [(ngModel)]="notes"></textarea>
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="isActive" [(ngModel)]="isActive" />
+      <span>Active — available when assigning parts</span>
+    </label>
+    @if (!createMode() && supplierId()) {
+      <p class="hint">
+        <a [routerLink]="['/inventory']" [queryParams]="{ supplierId: supplierId() }">View inventory parts</a>
+        from this supplier.
+      </p>
+    }
+    <app-field-error [message]="fieldErrors.get('submit')" />
+    <div class="form-actions">
+      <button type="submit" class="primary" [disabled]="saving()">
+        {{ saving() ? 'Saving…' : createMode() ? 'Create supplier' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+}

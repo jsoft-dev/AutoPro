@@ -1,0 +1,126 @@
+<div class="page-header">
+  <div>
+    <h1>Suppliers</h1>
+    <p class="lede">Vendors you purchase parts from. Link suppliers on inventory items to track where stock comes from.</p>
+  </div>
+  <hgroup class="actions">
+    <a routerLink="/suppliers/new" class="btn-primary">Add supplier</a>
+    <button type="button" class="ghost" (click)="load()" [disabled]="loading()">Refresh</button>
+  </hgroup>
+</div>
+
+<section class="filters-panel">
+  <form class="filter-form" (submit)="onSearchSubmit($event)">
+    <div class="filter-row">
+      <label class="field field--search">
+        <span class="field-label">Search</span>
+        <input
+          type="search"
+          name="q"
+          placeholder="Name, phone, or email"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          autocomplete="off"
+        />
+      </label>
+      <div class="field field--actions">
+        <span class="field-label field-label--hidden">Actions</span>
+        <div class="button-row">
+          <button type="submit" class="ghost" [disabled]="loading()">Search</button>
+          @if (searchQuery().trim()) {
+            <button type="button" class="ghost" (click)="clearSearch()">Clear</button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-row filter-row--secondary">
+      <label class="field field--checkbox">
+        <span class="field-label">Status</span>
+        <span class="checkbox-row">
+          <input
+            type="checkbox"
+            [checked]="showInactive()"
+            (change)="onShowInactiveChange($any($event.target).checked)"
+          />
+          Include inactive suppliers
+        </span>
+      </label>
+
+      @if (hasActiveFilters()) {
+        <div class="field field--clear">
+          <span class="field-label field-label--hidden">Reset</span>
+          <button type="button" class="ghost" (click)="clearAllFilters()">Clear all filters</button>
+        </div>
+      }
+    </div>
+  </form>
+</section>
+
+@if (error()) {
+  <div class="alert">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading suppliers…</p>
+} @else if (items().length === 0) {
+  <div class="empty">
+    @if (hasActiveFilters()) {
+      <p>No suppliers match your search or filters.</p>
+      <p class="muted">
+        <button type="button" class="linkish inline" (click)="clearAllFilters()">Clear filters</button>
+        or <a routerLink="/suppliers/new">add a supplier</a>.
+      </p>
+    } @else {
+      <p>No suppliers yet.</p>
+      <p class="muted">
+        <a routerLink="/suppliers/new">Add a supplier</a> or assign one when you import inventory from Excel.
+      </p>
+    }
+  </div>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th class="num">Parts</th>
+          <th>Status</th>
+          <th>Added</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (s of items(); track s.id) {
+          <tr
+            class="row-nav"
+            tabindex="0"
+            [class.inactive]="!s.isActive"
+            [routerLink]="['/suppliers', s.id]"
+          >
+            <td>{{ s.name }}</td>
+            <td class="muted">{{ s.phone ?? '—' }}</td>
+            <td class="muted">{{ s.email ?? '—' }}</td>
+            <td class="num">{{ s.inventoryItemCount }}</td>
+            <td>
+              @if (s.isActive) {
+                <span class="badge ok">Active</span>
+              } @else {
+                <span class="badge muted">Inactive</span>
+              }
+            </td>
+            <td class="muted">{{ s.createdAtUtc | date: 'medium' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [page]="page()"
+    [pageSize]="pageSize()"
+    [totalCount]="totalCount()"
+    [disabled]="loading()"
+    (pageChange)="goToPage($event)"
+  />
+}

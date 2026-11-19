@@ -85,7 +85,7 @@ public class AdminJobsController(
         {
             logger.LogWarning(
                 ex,
-                "Payment thank-you email failed for job {JobId}; job close succeeded.",
+                "Payment thank-you notification failed for job {JobId}; job close succeeded.",
                 job.Id);
         }
 

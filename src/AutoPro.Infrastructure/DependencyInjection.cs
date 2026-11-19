@@ -3,6 +3,7 @@ using AutoPro.Application.Billing;
 using AutoPro.Application.Email;
 using AutoPro.Application.Messaging;
 using AutoPro.Application.Options;
+using AutoPro.Application.Sms;
 using AutoPro.Infrastructure.Persistence;
 using AutoPro.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -19,6 +20,7 @@ public static class DependencyInjection
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<SmsOptions>(configuration.GetSection(SmsOptions.SectionName));
 
         services.AddDbContext<AutoProDbContext>(options =>
             options.UseNpgsql(
@@ -45,6 +47,24 @@ public static class DependencyInjection
         else
         {
             services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        }
+
+        var sms = configuration.GetSection(SmsOptions.SectionName).Get<SmsOptions>() ?? new SmsOptions();
+        if (sms.Enabled &&
+            string.Equals(sms.Provider, "SmsGo", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(sms.ApiKey))
+            {
+                throw new InvalidOperationException("Sms is Enabled with Provider SmsGo but ApiKey is missing.");
+            }
+
+            var baseUrl = (string.IsNullOrWhiteSpace(sms.BaseUrl) ? "https://api.smsgo.lk" : sms.BaseUrl).TrimEnd('/') + "/";
+            services.AddHttpClient<ISmsSender, SmsGoSmsSender>(client =>
+                client.BaseAddress = new Uri(baseUrl));
+        }
+        else
+        {
+            services.AddSingleton<ISmsSender, LoggingSmsSender>();
         }
 
         var jwt = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()

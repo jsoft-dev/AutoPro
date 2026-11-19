@@ -16,21 +16,96 @@
   color: var(--ap-muted);
 }
 
-.search {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.filters-panel {
   margin-bottom: 1.25rem;
-  align-items: center;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+  background: var(--ap-card);
 }
 
-.search input {
-  flex: 1;
-  min-width: 200px;
+.filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.filter-row--secondary {
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--ap-border);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ap-muted);
+}
+
+.field-label--hidden {
+  visibility: hidden;
+}
+
+.field--search {
+  flex: 1 1 280px;
+}
+
+.field--actions {
+  flex: 0 0 auto;
+}
+
+.field--supplier {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.field--checkbox {
+  flex: 0 1 auto;
+}
+
+.field--clear {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.field input[type='search'],
+.field select {
+  width: 100%;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--ap-border);
   border-radius: 8px;
   font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+}
+
+.button-row,
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: 2.35rem;
+}
+
+.checkbox-row {
+  font-size: 0.9rem;
+  color: var(--ap-text);
 }
 
 .table-wrap {
@@ -99,10 +174,20 @@ td.num {
   background: var(--ap-card);
 }
 
+.header-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
+  justify-content: flex-end;
 }
 
 .btn-primary {
@@ -125,9 +210,13 @@ td.num {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--ap-muted);
-  margin-left: 0.25rem;
+  white-space: nowrap;
+}
+
+.import-toggle {
+  line-height: 1.25;
 }
 
 .badge {
@@ -149,4 +238,55 @@ td.num {
 
 tr.inactive td {
   opacity: 0.65;
+}
+
+.import-btn {
+  position: relative;
+  cursor: pointer;
+}
+
+.import-btn input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.import-btn:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.import-summary {
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+  background: #f3f8ff;
+  font-size: 0.9rem;
+}
+
+.import-summary ul {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+  color: var(--ap-danger);
+}
+
+.import-hint {
+  margin: 0.5rem 0;
+}
+
+.linkish {
+  margin-left: 0.75rem;
+  border: none;
+  background: none;
+  color: var(--ap-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: inherit;
+}
+
+.linkish.inline {
+  margin-left: 0;
+  padding: 0;
 }

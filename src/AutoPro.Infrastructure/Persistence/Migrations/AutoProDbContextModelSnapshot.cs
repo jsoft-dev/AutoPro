@@ -82,6 +82,9 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
 
+                    b.Property<Guid?>("SupplierId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -94,6 +97,8 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.HasIndex("IsActive");
 
                     b.HasIndex("PartNumber");
+
+                    b.HasIndex("SupplierId");
 
                     b.ToTable("InventoryItems");
                 });
@@ -394,6 +399,55 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.ToTable("StaffUsers");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.Supplier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ContactPerson")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Suppliers");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.Vehicle", b =>
                 {
                     b.Property<Guid>("Id")
@@ -454,6 +508,16 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Vehicles");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.InventoryItem", b =>
+                {
+                    b.HasOne("AutoPro.Domain.Entities.Supplier", "Supplier")
+                        .WithMany("InventoryItems")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Supplier");
                 });
 
             modelBuilder.Entity("AutoPro.Domain.Entities.JobInvoice", b =>
@@ -558,6 +622,11 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.Navigation("PurchaseLines");
 
                     b.Navigation("StatusHistory");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.Supplier", b =>
+                {
+                    b.Navigation("InventoryItems");
                 });
 
             modelBuilder.Entity("AutoPro.Domain.Entities.Vehicle", b =>

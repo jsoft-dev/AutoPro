@@ -6,6 +6,8 @@ public record InventoryAdminListItemResponse(
     string Name,
     decimal QuantityOnHand,
     decimal UnitPrice,
+    Guid? SupplierId,
+    string? SupplierName,
     bool IsActive,
     DateTime CreatedAtUtc);
 
@@ -16,6 +18,8 @@ public record InventoryAdminDetailResponse(
     string? Notes,
     decimal QuantityOnHand,
     decimal UnitPrice,
+    Guid? SupplierId,
+    string? SupplierName,
     bool IsActive,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc);
@@ -26,6 +30,7 @@ public record CreateInventoryItemRequest(
     string? Notes,
     decimal QuantityOnHand,
     decimal UnitPrice,
+    Guid? SupplierId,
     bool IsActive = true);
 
 public record UpdateInventoryItemRequest(
@@ -34,6 +39,7 @@ public record UpdateInventoryItemRequest(
     string? Notes,
     decimal QuantityOnHand,
     decimal UnitPrice,
+    Guid? SupplierId,
     bool IsActive);
 
 public record InventorySearchItemResponse(

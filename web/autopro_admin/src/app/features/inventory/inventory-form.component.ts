@@ -4,7 +4,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 
 import { InventoryService } from '../../services/inventory.service';
+import { SuppliersService } from '../../services/suppliers.service';
 import { InventoryWritePayload } from '../../models/inventory.models';
+import { SupplierOption } from '../../models/supplier.models';
 import { FieldErrorComponent } from '../../shared/field-error.component';
 import { FieldErrorsStore } from '../../shared/field-errors.store';
 
@@ -19,23 +21,30 @@ export class InventoryFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly inventoryApi = inject(InventoryService);
+  private readonly suppliersApi = inject(SuppliersService);
 
   readonly createMode = signal(false);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly pageError = signal<string | null>(null);
   readonly fieldErrors = new FieldErrorsStore();
+  readonly supplierOptions = signal<SupplierOption[]>([]);
 
   partNumber = '';
   name = '';
   notes = '';
   quantityOnHand = 0;
   unitPrice = 0;
+  supplierId = '';
   isActive = true;
 
   private partId: string | null = null;
 
   ngOnInit(): void {
+    this.suppliersApi.options().subscribe({
+      next: (opts) => this.supplierOptions.set(opts),
+      error: () => this.supplierOptions.set([]),
+    });
     this.route.paramMap.subscribe((params) => this.loadPart(params.get('id')));
   }
 
@@ -49,6 +58,7 @@ export class InventoryFormComponent implements OnInit {
       this.notes = '';
       this.quantityOnHand = 0;
       this.unitPrice = 0;
+      this.supplierId = '';
       this.isActive = true;
       this.loading.set(false);
       return;
@@ -63,6 +73,7 @@ export class InventoryFormComponent implements OnInit {
         this.notes = item.notes ?? '';
         this.quantityOnHand = item.quantityOnHand;
         this.unitPrice = item.unitPrice;
+        this.supplierId = item.supplierId ?? '';
         this.isActive = item.isActive;
         this.loading.set(false);
       },
@@ -83,6 +94,7 @@ export class InventoryFormComponent implements OnInit {
       notes: this.notes.trim() || null,
       quantityOnHand: this.quantityOnHand,
       unitPrice: this.unitPrice,
+      supplierId: this.supplierId.trim() || null,
       isActive: this.isActive,
     };
 

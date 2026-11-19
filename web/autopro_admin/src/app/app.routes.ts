@@ -81,6 +81,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'suppliers',
+        loadComponent: () =>
+          import('./features/suppliers/supplier-list.component').then(
+            (m) => m.SupplierListComponent,
+          ),
+      },
+      {
+        path: 'suppliers/:id',
+        loadComponent: () =>
+          import('./features/suppliers/supplier-form.component').then(
+            (m) => m.SupplierFormComponent,
+          ),
+      },
+      {
         path: 'settings/business',
         loadComponent: () =>
           import('./features/settings/business-settings.component').then(

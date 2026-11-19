@@ -1,29 +1,31 @@
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
+.back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hero {
   margin-bottom: 1.25rem;
 }
 
-.page-header h1 {
+.hero h1 {
+  margin: 0.25rem 0;
+  font-size: 1.75rem;
+}
+
+.eyebrow {
   margin: 0;
-  font-size: 1.65rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ap-muted);
+  font-weight: 600;
 }
 
 .lede {
   margin: 0.35rem 0 0;
   color: var(--ap-muted);
-}
-
-.ghost {
-  border: 1px solid var(--ap-border);
-  background: var(--ap-card);
-  padding: 0.45rem 0.75rem;
-  border-radius: 8px;
-  text-decoration: none;
-  color: var(--ap-text);
-  font-size: 0.9rem;
 }
 
 .card.form {
@@ -51,7 +53,8 @@ label span {
 }
 
 input,
-textarea {
+textarea,
+select {
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--ap-border);
   border-radius: 8px;
@@ -116,4 +119,10 @@ textarea {
   color: var(--ap-danger);
   border-radius: 8px;
   margin-bottom: 1rem;
+}
+
+.inline-link {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--ap-primary);
 }

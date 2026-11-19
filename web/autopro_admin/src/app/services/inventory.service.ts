@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../core/api-config';
 import { PagedResult } from '../models/pagination.models';
 import {
   InventoryDetail,
+  InventoryImportResult,
   InventoryListItem,
   InventorySearchPage,
   InventoryWritePayload,
@@ -25,10 +26,17 @@ export class InventoryService {
     });
   }
 
-  list(options?: { q?: string; includeInactive?: boolean; page?: number; pageSize?: number }) {
+  list(options?: {
+    q?: string;
+    supplierId?: string;
+    includeInactive?: boolean;
+    page?: number;
+    pageSize?: number;
+  }) {
     let params = new HttpParams();
     const q = options?.q?.trim();
     if (q) params = params.set('q', q);
+    if (options?.supplierId) params = params.set('supplierId', options.supplierId);
     if (options?.includeInactive) params = params.set('includeInactive', 'true');
     if (options?.page != null) params = params.set('page', String(options.page));
     if (options?.pageSize != null) params = params.set('pageSize', String(options.pageSize));
@@ -47,5 +55,33 @@ export class InventoryService {
 
   update(id: string, payload: InventoryWritePayload) {
     return this.http.put<InventoryDetail>(`${API_BASE_URL}/api/v1/admin/inventory/${id}`, payload);
+  }
+
+  downloadImportTemplate() {
+    return this.http.get(`${API_BASE_URL}/api/v1/admin/inventory/import/template`, {
+      responseType: 'blob',
+    });
+  }
+
+  exportExcel(options?: { q?: string; supplierId?: string; includeInactive?: boolean }) {
+    let params = new HttpParams();
+    const q = options?.q?.trim();
+    if (q) params = params.set('q', q);
+    if (options?.supplierId) params = params.set('supplierId', options.supplierId);
+    if (options?.includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get(`${API_BASE_URL}/api/v1/admin/inventory/export`, {
+      params,
+      responseType: 'blob',
+    });
+  }
+
+  importExcel(file: File, createMissingSuppliers = true) {
+    const body = new FormData();
+    body.append('file', file);
+    let params = new HttpParams();
+    if (!createMissingSuppliers) params = params.set('createMissingSuppliers', 'false');
+    return this.http.post<InventoryImportResult>(`${API_BASE_URL}/api/v1/admin/inventory/import`, body, {
+      params,
+    });
   }
 }

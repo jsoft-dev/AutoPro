@@ -1,0 +1,10 @@
+@import '../inventory/inventory-form.component.scss';
+
+.hint {
+  margin: -0.25rem 0 1rem;
+  font-size: 0.9rem;
+
+  a {
+    color: var(--ap-primary);
+  }
+}
