@@ -50,7 +50,7 @@ await db.Database.ExecuteSqlRawAsync(
     GRANT ALL ON SCHEMA public TO public;
     """);
 
-logger.LogInformation("Applying migrations and seed (demo users, prices, mock inventory)…");
+logger.LogInformation("Applying migrations and seed (demo users, prices, inventory, customers, jobs)…");
 await DataSeeder.SeedAsync(db, logger);
 
 var users = await db.StaffUsers.CountAsync();

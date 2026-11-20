@@ -60,7 +60,7 @@ Swagger: http://localhost:5080/swagger
 
 **Demo logins:** `cr.demo` / `ChangeMe123!` (customer rep), `ao.demo` / `ChangeMe123!` (WebApp)
 
-On first run, EF migrations apply and the demo CR user is seeded.
+On first run, EF migrations apply and seed data runs: demo users, job-type prices, 250 mock inventory parts (`MOCK-*`), plus sample customers, vehicles, suppliers, and jobs (`DEMO-2026-*`). Job invoices are backfilled on startup when purchase lines or service charges apply.
 
 ### 3. WebApp (Angular)
 

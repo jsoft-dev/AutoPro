@@ -5,7 +5,7 @@
 #   ./scripts/reset-local-database.sh
 #
 # Then restart the API once (dev launcher or `dotnet run`). On startup it runs
-# MigrateAsync + DataSeeder (demo users, job-type service prices).
+# MigrateAsync + DataSeeder (demo users, prices, inventory, customers, vehicles, jobs).
 
 set -euo pipefail
 
@@ -47,6 +47,7 @@ You will get:
   • Demo users: cr.demo and ao.demo — password ChangeMe123!
   • Default service charges in Business settings
   • 250 mock shop parts (MOCK-*), same as Render after migrate
+  • Demo customers, vehicles (with QR tokens), suppliers, and sample jobs (DEMO-2026-*)
 
 Optional extra mock parts (if you need more than the migration inserts):
   dotnet run --project tools/SeedInventoryMock/SeedInventoryMock.csproj

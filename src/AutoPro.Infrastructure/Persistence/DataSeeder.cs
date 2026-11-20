@@ -82,5 +82,7 @@ public static class DataSeeder
             await db.SaveChangesAsync(ct);
             logger.LogInformation("Seeded organization settings row.");
         }
+
+        await DemoDataSeeder.EnsureDemoDataAsync(db, logger, ct);
     }
 }
