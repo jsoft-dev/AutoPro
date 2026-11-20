@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoPro.Application.Options;
 using AutoPro.Application.Sms;
@@ -12,7 +13,18 @@ public sealed class SmsGoSmsSender(
     IOptions<SmsOptions> options,
     ILogger<SmsGoSmsSender> logger) : ISmsSender
 {
-    public async Task SendPaymentThankYouAsync(
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
+    private static readonly JsonSerializerOptions SendPayloadJsonOptions = new()
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    public Task SendPaymentThankYouAsync(
         string toE164SlMobile,
         string customerName,
         string amountFormatted,
@@ -20,44 +32,132 @@ public sealed class SmsGoSmsSender(
         string plateNumber,
         CancellationToken cancellationToken = default)
     {
-        var opts = options.Value;
-        var apiKey = opts.ApiKey!.Trim();
-
         var bodyText =
             $"Thank you {customerName}! We received your payment of Rs. {amountFormatted} for vehicle {plateNumber} (job {jobNumber}). We appreciate your business — please visit AutoPro again!";
 
-        var payload = new SmsGoSendRequest(
+        return SendSingleAsync(
             toE164SlMobile,
             bodyText,
-            string.IsNullOrWhiteSpace(opts.Mask) ? null : opts.Mask.Trim(),
-            opts.CampaignName);
+            options.Value.CampaignName,
+            "payment thank-you",
+            jobNumber,
+            cancellationToken);
+    }
+
+    public Task SendCustomerRegistrationWelcomeAsync(
+        string toE164SlMobile,
+        string customerName,
+        CancellationToken cancellationToken = default)
+    {
+        var bodyText =
+            $"Welcome {customerName}! You are registered with AutoPro. We will send service updates to this number.";
+
+        var campaign = $"{options.Value.CampaignName}-Registration";
+        return SendSingleAsync(
+            toE164SlMobile,
+            bodyText,
+            campaign,
+            "registration welcome",
+            customerName,
+            cancellationToken);
+    }
+
+    private async Task SendSingleAsync(
+        string toE164SlMobile,
+        string bodyText,
+        string campaignName,
+        string occasionLabel,
+        string logContext,
+        CancellationToken cancellationToken)
+    {
+        var opts = options.Value;
+        var apiKey = opts.ApiKey!.Trim();
+        var mask = string.IsNullOrWhiteSpace(opts.Mask) ? null : opts.Mask.Trim();
+        var requestUri = http.BaseAddress is null
+            ? "(no HttpClient BaseAddress)"
+            : new Uri(http.BaseAddress, "api/v1/sms/send").ToString();
+
+        logger.LogInformation(
+            "SMSGo dispatch: occasion={Occasion}, context={Context}, to={To}, mask={Mask}, campaign={Campaign}, endpoint={Endpoint}, apiKeyFingerprint={ApiKeyFingerprint}, messageChars={MessageChars}",
+            occasionLabel,
+            logContext,
+            toE164SlMobile,
+            mask ?? "(default)",
+            campaignName,
+            requestUri,
+            SmsConfigDiagnostics.FingerprintApiKey(apiKey),
+            bodyText.Length);
+
+        var payload = new SmsGoSendRequest(toE164SlMobile, bodyText, mask, campaignName);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "api/v1/sms/send");
         request.Headers.TryAddWithoutValidation("X-API-Key", apiKey);
-        request.Content = JsonContent.Create(payload);
+        request.Content = JsonContent.Create(payload, options: SendPayloadJsonOptions);
 
-        var response = await http.SendAsync(request, cancellationToken);
-        var parsed = await response.Content.ReadFromJsonAsync<SmsGoSendResponse>(cancellationToken);
+        HttpResponseMessage response;
+        try
+        {
+            response = await http.SendAsync(request, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "SMSGo HTTP request failed before response: occasion={Occasion}, to={To}, endpoint={Endpoint}",
+                occasionLabel,
+                toE164SlMobile,
+                requestUri);
+            throw;
+        }
+
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        SmsGoSendResponse? parsed;
+        try
+        {
+            parsed = JsonSerializer.Deserialize<SmsGoSendResponse>(responseBody, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError(
+                ex,
+                "SMSGo response JSON parse failed: occasion={Occasion}, to={To}, HTTP {Status}, body={Body}",
+                occasionLabel,
+                toE164SlMobile,
+                (int)response.StatusCode,
+                TruncateForLog(responseBody));
+            throw new InvalidOperationException($"SMSGo send failed: invalid JSON response (HTTP {(int)response.StatusCode}).");
+        }
 
         if (!response.IsSuccessStatusCode || parsed is null || !parsed.Success)
         {
             var detail = parsed?.Error ?? response.ReasonPhrase ?? "Unknown SMSGo error";
             logger.LogError(
-                "SMSGo send failed for job {JobNumber} to {To}: HTTP {Status} — {Detail}",
-                jobNumber,
+                "SMSGo send failed: occasion={Occasion}, context={Context}, to={To}, HTTP {Status}, error={Error}, environment={Environment}, successFlag={SuccessFlag}, body={Body}",
+                occasionLabel,
+                logContext,
                 toE164SlMobile,
                 (int)response.StatusCode,
-                detail);
+                detail,
+                parsed?.Environment ?? "(n/a)",
+                parsed?.Success.ToString() ?? "(n/a)",
+                TruncateForLog(responseBody));
             throw new InvalidOperationException($"SMSGo send failed: {detail}");
         }
 
         logger.LogInformation(
-            "Payment thank-you SMS sent via SMSGo to {To} for job {JobNumber} (id={MessageId}, status={Status}).",
+            "SMSGo send succeeded: occasion={Occasion}, context={Context}, to={To}, messageId={MessageId}, status={Status}, environment={Environment}, cost={Cost}, body={Body}",
+            occasionLabel,
+            logContext,
             toE164SlMobile,
-            jobNumber,
             parsed.Data?.Id,
-            parsed.Data?.Status);
+            parsed.Data?.Status,
+            parsed.Environment ?? "(n/a)",
+            parsed.Data?.Cost,
+            TruncateForLog(responseBody));
     }
+
+    private static string TruncateForLog(string? text, int max = 500) =>
+        string.IsNullOrEmpty(text) ? "(empty)" : text.Length <= max ? text : text[..max] + "…";
 
     private sealed record SmsGoSendRequest(
         string To,
@@ -69,6 +169,7 @@ public sealed class SmsGoSmsSender(
     {
         public bool Success { get; init; }
         public string? Error { get; init; }
+        public string? Environment { get; init; }
         public SmsGoSendData? Data { get; init; }
     }
 
@@ -78,5 +179,8 @@ public sealed class SmsGoSmsSender(
 
         [JsonPropertyName("status")]
         public string? Status { get; init; }
+
+        [JsonPropertyName("cost")]
+        public decimal? Cost { get; init; }
     }
 }

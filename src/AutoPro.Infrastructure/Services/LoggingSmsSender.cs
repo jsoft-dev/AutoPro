@@ -26,4 +26,20 @@ public sealed class LoggingSmsSender(ILogger<LoggingSmsSender> logger) : ISmsSen
 
         return Task.CompletedTask;
     }
+
+    public Task SendCustomerRegistrationWelcomeAsync(
+        string toE164SlMobile,
+        string customerName,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation(
+            """
+            SMS (log-only) → {To}
+            Body: Welcome {CustomerName}! You are registered with AutoPro. We will send service updates to this number.
+            """,
+            toE164SlMobile,
+            customerName);
+
+        return Task.CompletedTask;
+    }
 }

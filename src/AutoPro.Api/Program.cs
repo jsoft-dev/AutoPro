@@ -1,9 +1,16 @@
 using AutoPro.Application.Billing;
+using AutoPro.Application.Options;
 using AutoPro.Infrastructure;
 using AutoPro.Infrastructure.Persistence;
+using AutoPro.Infrastructure.Services;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddJsonFile(
+    $"appsettings.{builder.Environment.EnvironmentName}.local.json",
+    optional: true,
+    reloadOnChange: true);
 
 var port = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrWhiteSpace(port))
@@ -45,6 +52,16 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+var startupSms = app.Configuration.GetSection(SmsOptions.SectionName).Get<SmsOptions>() ?? new SmsOptions();
+app.Logger.LogInformation(
+    "SMS startup: enabled={Enabled}, provider={Provider}, senderImpl={SenderImpl}, baseUrl={BaseUrl}, mask={Mask}, apiKeyFingerprint={ApiKeyFingerprint}",
+    startupSms.Enabled,
+    startupSms.Provider,
+    SmsConfigDiagnostics.SmsImplType(startupSms),
+    startupSms.BaseUrl,
+    startupSms.Mask ?? "(default)",
+    SmsConfigDiagnostics.FingerprintApiKey(startupSms.ApiKey));
 
 using (var scope = app.Services.CreateScope())
 {

@@ -1,4 +1,5 @@
 using AutoPro.Application.Contracts.Customers;
+using AutoPro.Application.Messaging;
 using AutoPro.Domain.Entities;
 using AutoPro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +11,10 @@ namespace AutoPro.Api.Controllers;
 [ApiController]
 [Authorize(Roles = "CustomerRepresentative")]
 [Route("api/v1/customers")]
-public class CustomersController(AutoProDbContext db) : ControllerBase
+public class CustomersController(
+    AutoProDbContext db,
+    ICustomerRegisteredNotifier customerRegisteredNotifier,
+    ILogger<CustomersController> logger) : ControllerBase
 {
     [HttpPost]
     public async Task<ActionResult<object>> Create([FromBody] CreateCustomerRequest request, CancellationToken ct)
@@ -26,6 +30,23 @@ public class CustomersController(AutoProDbContext db) : ControllerBase
 
         db.Customers.Add(customer);
         await db.SaveChangesAsync(ct);
+
+        try
+        {
+            logger.LogInformation(
+                "Customer created; starting registration SMS: customerId={CustomerId}, phone={Phone}",
+                customer.Id,
+                customer.Phone);
+            await customerRegisteredNotifier.NotifyCustomerRegisteredAsync(customer, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Registration welcome notification failed for customer {CustomerId}, phone={Phone}; customer create succeeded.",
+                customer.Id,
+                customer.Phone);
+        }
 
         return CreatedAtAction(nameof(GetById), new { id = customer.Id }, new
         {

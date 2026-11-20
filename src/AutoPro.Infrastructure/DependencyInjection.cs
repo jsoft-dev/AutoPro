@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<JobNumberGenerator>();
         services.AddScoped<IJobInvoiceFinalizer, JobInvoiceFinalizer>();
         services.AddScoped<IPaymentClosedNotifier, PaymentClosedNotifier>();
+        services.AddScoped<ICustomerRegisteredNotifier, CustomerRegisteredNotifier>();
         services.AddScoped<OrganizationLogoStore>();
 
         var email = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
