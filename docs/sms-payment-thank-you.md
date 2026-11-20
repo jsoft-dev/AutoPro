@@ -6,6 +6,8 @@ Closing the job **always succeeds** even if SMS fails (errors are logged).
 
 SMS uses [SMSGo.lk](https://smsgo.lk/developers/api) (~LKR 0.54/SMS, pay-as-you-go credits). Unicode (Sinhala/Tamil) is supported; the default thank-you message is English.
 
+For **customer registration** welcome SMS, see [sms-customer-registration.md](sms-customer-registration.md). Use a **sandbox** API key (`sg_test_...`) for zero-cost HTTP tests — [SMSGo sandbox docs](https://smsgo.lk/developers/api#playground).
+
 ## No signup — log mode (default in Development)
 
 `appsettings.Development.json` enables **`Sms:Enabled: true`** with **`Provider: Log`**.
