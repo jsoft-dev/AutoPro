@@ -52,6 +52,104 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.GoodsReceiptNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GrnNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("PostedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PostedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PurchaseOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ReceivedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SupplierReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GrnNumber")
+                        .IsUnique();
+
+                    b.HasIndex("PurchaseOrderId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("GoodsReceiptNotes");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.GoodsReceiptNoteLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GoodsReceiptNoteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("PurchaseOrderLineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("QuantityReceived")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<decimal?>("UnitCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoodsReceiptNoteId");
+
+                    b.HasIndex("InventoryItemId");
+
+                    b.HasIndex("PurchaseOrderLineId");
+
+                    b.ToTable("GoodsReceiptNoteLines");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.InventoryItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -299,6 +397,91 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.ToTable("OrganizationSettings");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.PurchaseOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PoNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PoNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("PurchaseOrders");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.PurchaseOrderLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("PurchaseOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("QuantityOrdered")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<decimal>("QuantityReceived")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<decimal?>("UnitCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryItemId");
+
+                    b.HasIndex("PurchaseOrderId");
+
+                    b.ToTable("PurchaseOrderLines");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.ServiceJob", b =>
                 {
                     b.Property<Guid>("Id")
@@ -510,6 +693,50 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.ToTable("Vehicles");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.GoodsReceiptNote", b =>
+                {
+                    b.HasOne("AutoPro.Domain.Entities.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("GoodsReceiptNotes")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AutoPro.Domain.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PurchaseOrder");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.GoodsReceiptNoteLine", b =>
+                {
+                    b.HasOne("AutoPro.Domain.Entities.GoodsReceiptNote", "GoodsReceiptNote")
+                        .WithMany("Lines")
+                        .HasForeignKey("GoodsReceiptNoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AutoPro.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AutoPro.Domain.Entities.PurchaseOrderLine", "PurchaseOrderLine")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderLineId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("GoodsReceiptNote");
+
+                    b.Navigation("InventoryItem");
+
+                    b.Navigation("PurchaseOrderLine");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.InventoryItem", b =>
                 {
                     b.HasOne("AutoPro.Domain.Entities.Supplier", "Supplier")
@@ -577,6 +804,36 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.Navigation("ServiceJob");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.PurchaseOrder", b =>
+                {
+                    b.HasOne("AutoPro.Domain.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.PurchaseOrderLine", b =>
+                {
+                    b.HasOne("AutoPro.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AutoPro.Domain.Entities.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("Lines")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+
+                    b.Navigation("PurchaseOrder");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.ServiceJob", b =>
                 {
                     b.HasOne("AutoPro.Domain.Entities.StaffUser", "CreatedByUser")
@@ -610,9 +867,21 @@ namespace AutoPro.Infrastructure.Persistence.Migrations
                     b.Navigation("Vehicles");
                 });
 
+            modelBuilder.Entity("AutoPro.Domain.Entities.GoodsReceiptNote", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
             modelBuilder.Entity("AutoPro.Domain.Entities.JobInvoice", b =>
                 {
                     b.Navigation("LineItems");
+                });
+
+            modelBuilder.Entity("AutoPro.Domain.Entities.PurchaseOrder", b =>
+                {
+                    b.Navigation("GoodsReceiptNotes");
+
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("AutoPro.Domain.Entities.ServiceJob", b =>

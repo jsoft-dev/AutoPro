@@ -2,6 +2,7 @@ using System.Security.Claims;
 using AutoPro.Application.Billing;
 using AutoPro.Application.Contracts.Common;
 using AutoPro.Application.Contracts.Jobs;
+using AutoPro.Application.Inventory;
 using AutoPro.Domain.Entities;
 using AutoPro.Domain.Enums;
 using AutoPro.Domain.Services;
@@ -19,7 +20,8 @@ namespace AutoPro.Api.Controllers;
 public class JobsController(
     AutoProDbContext db,
     JobNumberGenerator jobNumbers,
-    IJobInvoiceFinalizer invoiceFinalizer) : ControllerBase
+    IJobInvoiceFinalizer invoiceFinalizer,
+    IInventoryStockAdjuster stockAdjuster) : ControllerBase
 {
     private Guid CurrentUserId =>
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -316,11 +318,6 @@ public class JobsController(
                 .FirstOrDefaultAsync(i => i.Id == request.InventoryItemId.Value && i.IsActive, ct);
             if (inventoryItem is null)
                 return BadRequest(new { message = "That inventory part was not found or is inactive." });
-            if (inventoryItem.QuantityOnHand < request.Quantity)
-                return BadRequest(new
-                {
-                    message = $"Insufficient stock for {inventoryItem.PartNumber}. On hand: {inventoryItem.QuantityOnHand}."
-                });
         }
 
         var description = request.Description.Trim();
@@ -337,8 +334,9 @@ public class JobsController(
 
         if (inventoryItem is not null)
         {
-            inventoryItem.QuantityOnHand -= request.Quantity;
-            inventoryItem.UpdatedAtUtc = DateTime.UtcNow;
+            var stockError = stockAdjuster.TryIssue(inventoryItem, request.Quantity);
+            if (stockError is not null)
+                return BadRequest(new { message = stockError });
         }
 
         var purchaseLine = new JobPurchaseLine

@@ -1,4 +1,4 @@
-<a class="back" routerLink="/inventory">← Inventory</a>
+<a class="back" routerLink="/inventory/items">← Items</a>
 
 @if (loading()) {
   <p class="muted">Loading…</p>
@@ -9,13 +9,13 @@
 
   <header class="hero">
     <div>
-      <p class="eyebrow">Shop inventory</p>
-      <h1>{{ createMode() ? 'Add part' : 'Edit part' }}</h1>
+      <p class="eyebrow">Inventory item</p>
+      <h1>{{ createMode() ? 'Add item' : 'Edit item' }}</h1>
       <p class="lede">
         @if (createMode()) {
-          Stock added here is available on the mobile app when reps add shop purchases.
+          Prefer posting a goods receipt to increase stock. Manual quantity here is for corrections only.
         } @else {
-          Update pricing, on-hand quantity, or deactivate a part you no longer stock.
+          Prefer goods receipts for stock increases. Edit quantity here only for cycle-count corrections.
         }
       </p>
     </div>

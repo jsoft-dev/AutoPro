@@ -1,0 +1,284 @@
+<a class="back" routerLink="/inventory/goods-receipts">← Goods receipts</a>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  @if (pageError()) {
+    <div class="alert">{{ pageError() }}</div>
+  }
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Goods receipt</p>
+      <h1>{{ createMode() ? 'New GRN' : grnNumber() }}</h1>
+      @if (!createMode()) {
+        <p class="lede">Status: {{ status() }}</p>
+      }
+    </div>
+  </header>
+
+  @if (!readOnly()) {
+    <form class="card form form--wide" (submit)="saveAsDraft($event)">
+      <div class="form-grid">
+        <label>
+          <span>Supplier</span>
+          <select
+            name="supplierId"
+            [(ngModel)]="supplierId"
+            (ngModelChange)="onSupplierChange(); refreshPoOptions()"
+            required
+          >
+            <option value="" disabled>Select supplier</option>
+            @for (s of supplierOptions(); track s.id) {
+              <option [value]="s.id">{{ s.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label>
+          <span>Link purchase order (optional)</span>
+          <select
+            name="purchaseOrderId"
+            [(ngModel)]="purchaseOrderId"
+            (ngModelChange)="onPurchaseOrderSelected()"
+            [disabled]="!supplierId"
+          >
+            <option [ngValue]="null">No PO — standalone receipt</option>
+            @for (po of poOptions(); track po.id) {
+              <option [ngValue]="po.id">{{ po.poNumber }} ({{ po.status }})</option>
+            }
+          </select>
+        </label>
+
+        <label>
+          <span>Received at</span>
+          <input type="datetime-local" name="receivedAt" [(ngModel)]="receivedAtLocal" required />
+        </label>
+
+        <label>
+          <span>Supplier invoice / reference</span>
+          <input type="text" name="supplierReference" [(ngModel)]="supplierReference" />
+        </label>
+      </div>
+
+      <label>
+        <span>Notes</span>
+        <textarea name="notes" rows="2" [(ngModel)]="notes"></textarea>
+      </label>
+
+      @if (linkedPo(); as po) {
+        <section class="po-remaining">
+          <h2>Open PO lines</h2>
+          <ul>
+            @for (line of po.lines; track line.id) {
+              @if (line.quantityRemaining > 0) {
+                <li>
+                  <span>
+                    <strong>{{ line.partNumber }}</strong>
+                    — {{ line.quantityRemaining }} remaining
+                  </span>
+                  <button type="button" class="ghost ghost--sm" (click)="addLineFromPo(line.id)">Add line</button>
+                </li>
+              }
+            }
+          </ul>
+        </section>
+      }
+
+      <section class="lines-section">
+        <div class="lines-section__head">
+          <h2>Receipt lines</h2>
+          <p>Each line increases stock when you post this GRN.</p>
+        </div>
+
+        @if (!purchaseOrderId) {
+          <div class="add-line-toolbar">
+            <div class="add-line-toolbar__field">
+              <app-inventory-part-search-field
+                [(value)]="partPick"
+                [showSelectionHint]="false"
+                [stretch]="true"
+              />
+            </div>
+            <button
+              type="button"
+              class="btn-primary add-line-toolbar__btn"
+              (click)="addLineFromPicker()"
+              [disabled]="!partPick()"
+            >
+              Add line
+            </button>
+          </div>
+        }
+
+        @if (lines().length === 0) {
+          <p class="lines-empty">No lines yet. @if (purchaseOrderId) { Add lines from the PO list above. } @else { Pick an item and click Add line. }</p>
+        } @else {
+          <div class="lines-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Qty received</th>
+                  <th>Unit cost (LKR)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of lines(); track $index; let i = $index) {
+                  <tr>
+                    <td>
+                      <span class="line-part-name">{{ line.partName }}</span>
+                      <span class="line-part-meta">{{ line.partNumber }}</span>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0.001"
+                        step="any"
+                        [(ngModel)]="line.quantityReceived"
+                        [name]="'rqty' + i"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [(ngModel)]="line.unitCost"
+                        [name]="'rcost' + i"
+                      />
+                    </td>
+                    <td>
+                      <button type="button" class="linkish" (click)="removeLine(i)">Remove</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <footer class="grn-footer" (click)="$event.stopPropagation()">
+        <p class="grn-footer__explainer">
+          <strong>Save as draft</strong> keeps stock unchanged and returns to the goods receipt list.
+          <strong>Save and post</strong> saves then receives goods into shop stock (with confirmation).
+        </p>
+
+        <label class="grn-footer__checkbox">
+          <input type="checkbox" [(ngModel)]="updatePriceOnPost" name="updatePrice" />
+          When posting, update item sell price from unit cost
+        </label>
+
+        <div class="grn-footer__actions">
+          <div class="split-btn" [class.split-btn--open]="saveMenuOpen()">
+            <button
+              type="button"
+              class="split-btn__main btn-primary"
+              (click)="saveAsDraft()"
+              [disabled]="saving()"
+            >
+              {{ saving() ? 'Saving…' : 'Save as draft' }}
+            </button>
+            <button
+              type="button"
+              class="split-btn__toggle btn-primary"
+              (click)="toggleSaveMenu($event)"
+              [disabled]="saving()"
+              [attr.aria-expanded]="saveMenuOpen()"
+              aria-haspopup="menu"
+              aria-label="More save options"
+            >
+              <svg class="split-btn__chevron" viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            @if (saveMenuOpen()) {
+              <div class="split-btn__menu" role="menu">
+                <button type="button" class="split-btn__menu-item" role="menuitem" (click)="saveAndPost()">
+                  Save and post
+                  <span class="split-btn__menu-hint">Receive into stock</span>
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (!createMode()) {
+            <button type="button" class="ghost ghost--danger" (click)="cancelGrn()" [disabled]="saving()">
+              Cancel draft
+            </button>
+          }
+        </div>
+      </footer>
+    </form>
+  } @else {
+    <div class="card form--wide">
+      <p class="lede">Posted {{ status() }} — stock was updated when this GRN was posted.</p>
+      <div class="lines-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Unit cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines(); track line.inventoryItemId) {
+              <tr>
+                <td>
+                  <span class="line-part-name">{{ line.partName }}</span>
+                  <span class="line-part-meta">{{ line.partNumber }}</span>
+                </td>
+                <td>{{ line.quantityReceived }}</td>
+                <td>{{ line.unitCost ?? '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <app-confirm-dialog
+    [open]="postConfirmOpen()"
+    title="Post goods receipt into stock?"
+    confirmLabel="Post into stock"
+    cancelLabel="Go back"
+    [confirmDisabled]="saving()"
+    (confirmed)="onPostConfirm()"
+    (cancelled)="onPostConfirmDismiss()"
+  >
+    <p>On-hand stock will increase. Review quantities and costs before continuing.</p>
+    <dl class="confirm-facts">
+      <div class="confirm-facts__row">
+        <dt>Supplier</dt>
+        <dd>{{ postConfirmSupplierName() }}</dd>
+      </div>
+      <div class="confirm-facts__row">
+        <dt>Lines</dt>
+        <dd>
+          {{ postConfirmLineCount() }} item{{ postConfirmLineCount() === 1 ? '' : 's' }},
+          total qty {{ postConfirmTotalQty() }}
+        </dd>
+      </div>
+    </dl>
+    @if (updatePriceOnPost) {
+      <p class="confirm-note">Sell prices will be updated from unit cost where cost is entered.</p>
+    }
+  </app-confirm-dialog>
+
+  <app-confirm-dialog
+    [open]="cancelConfirmOpen()"
+    title="Cancel this draft GRN?"
+    confirmLabel="Cancel draft"
+    cancelLabel="Keep editing"
+    [confirmDanger]="true"
+    [confirmDisabled]="saving()"
+    (confirmed)="onCancelConfirm()"
+    (cancelled)="cancelConfirmOpen.set(false)"
+  >
+    <p>This draft will be marked cancelled. Shop stock will not change.</p>
+  </app-confirm-dialog>
+}

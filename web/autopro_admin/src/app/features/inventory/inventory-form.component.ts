@@ -129,7 +129,7 @@ export class InventoryFormComponent implements OnInit {
     req.subscribe({
       next: () => {
         this.saving.set(false);
-        void this.router.navigate(['/inventory']);
+        void this.router.navigate(['/inventory/items']);
       },
       error: (err: HttpErrorResponse) => {
         this.fieldErrors.set('submit', err.error?.message ?? 'Could not save part.');

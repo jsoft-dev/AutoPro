@@ -1,0 +1,40 @@
+<div class="inventory-module">
+  <header class="inventory-module__header">
+    <h1>Inventory</h1>
+    <p class="inventory-module__subtitle">Stock items, purchase orders, and goods receipts.</p>
+  </header>
+
+  <nav class="inventory-module__tabs" aria-label="Inventory sections">
+    <a
+      class="inventory-module__tab"
+      routerLink="/inventory/items"
+      routerLinkActive="inventory-module__tab--active"
+      [routerLinkActiveOptions]="tabActiveOptions"
+    >
+      <span class="inventory-module__tab-label">Items</span>
+      <span class="inventory-module__tab-hint">On-hand stock</span>
+    </a>
+    <a
+      class="inventory-module__tab"
+      routerLink="/inventory/purchase-orders"
+      routerLinkActive="inventory-module__tab--active"
+      [routerLinkActiveOptions]="tabActiveOptions"
+    >
+      <span class="inventory-module__tab-label">Purchase orders</span>
+      <span class="inventory-module__tab-hint">PO</span>
+    </a>
+    <a
+      class="inventory-module__tab"
+      routerLink="/inventory/goods-receipts"
+      routerLinkActive="inventory-module__tab--active"
+      [routerLinkActiveOptions]="tabActiveOptions"
+    >
+      <span class="inventory-module__tab-label">Goods receipts</span>
+      <span class="inventory-module__tab-hint">GRN</span>
+    </a>
+  </nav>
+
+  <div class="inventory-module__content">
+    <router-outlet />
+  </div>
+</div>

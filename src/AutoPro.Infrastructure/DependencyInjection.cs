@@ -1,5 +1,6 @@
 using System.Text;
 using AutoPro.Application.Billing;
+using AutoPro.Application.Inventory;
 using AutoPro.Application.Email;
 using AutoPro.Application.Messaging;
 using AutoPro.Application.Options;
@@ -29,6 +30,10 @@ public static class DependencyInjection
 
         services.AddScoped<JwtTokenGenerator>();
         services.AddScoped<JobNumberGenerator>();
+        services.AddScoped<GoodsReceiptNumberGenerator>();
+        services.AddScoped<PurchaseOrderNumberGenerator>();
+        services.AddScoped<IInventoryStockAdjuster, InventoryStockAdjuster>();
+        services.AddScoped<IGoodsReceiptPostingService, GoodsReceiptPostingService>();
         services.AddScoped<IJobInvoiceFinalizer, JobInvoiceFinalizer>();
         services.AddScoped<IPaymentClosedNotifier, PaymentClosedNotifier>();
         services.AddScoped<OrganizationLogoStore>();
