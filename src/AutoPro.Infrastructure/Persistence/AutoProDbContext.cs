@@ -17,6 +17,10 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
     public DbSet<JobInvoice> JobInvoices => Set<JobInvoice>();
     public DbSet<JobInvoiceLineItem> JobInvoiceLineItems => Set<JobInvoiceLineItem>();
     public DbSet<OrganizationSettings> OrganizationSettings => Set<OrganizationSettings>();
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
+    public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
+    public DbSet<GoodsReceiptNote> GoodsReceiptNotes => Set<GoodsReceiptNote>();
+    public DbSet<GoodsReceiptNoteLine> GoodsReceiptNoteLines => Set<GoodsReceiptNoteLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -144,6 +148,61 @@ public class AutoProDbContext(DbContextOptions<AutoProDbContext> options) : DbCo
             e.HasKey(x => x.Id);
             e.Property(x => x.Note).HasMaxLength(500);
             e.HasOne(x => x.ServiceJob).WithMany(j => j.StatusHistory).HasForeignKey(x => x.ServiceJobId);
+        });
+
+        modelBuilder.Entity<PurchaseOrder>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PoNumber).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.HasIndex(x => x.PoNumber).IsUnique();
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.SupplierId);
+            e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PurchaseOrderLine>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.QuantityOrdered).HasPrecision(18, 3);
+            e.Property(x => x.QuantityReceived).HasPrecision(18, 3);
+            e.Property(x => x.UnitCost).HasPrecision(18, 2);
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.HasOne(x => x.PurchaseOrder).WithMany(p => p.Lines).HasForeignKey(x => x.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.InventoryItem).WithMany().HasForeignKey(x => x.InventoryItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GoodsReceiptNote>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.GrnNumber).HasMaxLength(32).IsRequired();
+            e.Property(x => x.SupplierReference).HasMaxLength(100);
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.HasIndex(x => x.GrnNumber).IsUnique();
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.SupplierId);
+            e.HasIndex(x => x.PurchaseOrderId);
+            e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PurchaseOrder).WithMany(p => p.GoodsReceiptNotes).HasForeignKey(x => x.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<GoodsReceiptNoteLine>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.QuantityReceived).HasPrecision(18, 3);
+            e.Property(x => x.UnitCost).HasPrecision(18, 2);
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.HasOne(x => x.GoodsReceiptNote).WithMany(g => g.Lines).HasForeignKey(x => x.GoodsReceiptNoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.InventoryItem).WithMany().HasForeignKey(x => x.InventoryItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PurchaseOrderLine).WithMany().HasForeignKey(x => x.PurchaseOrderLineId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

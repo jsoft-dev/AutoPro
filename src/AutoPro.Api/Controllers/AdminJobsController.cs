@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AutoPro.Application.Billing;
 using AutoPro.Application.Contracts.Jobs;
+using AutoPro.Application.Inventory;
 using AutoPro.Application.Messaging;
 using AutoPro.Domain.Entities;
 using AutoPro.Domain.Enums;
@@ -20,6 +21,7 @@ public class AdminJobsController(
     AutoProDbContext db,
     IJobInvoiceFinalizer invoiceFinalizer,
     IPaymentClosedNotifier paymentClosedNotifier,
+    IInventoryStockAdjuster stockAdjuster,
     ILogger<AdminJobsController> logger) : ControllerBase
 {
     private Guid CurrentUserId =>
@@ -118,10 +120,7 @@ public class AdminJobsController(
             {
                 var item = await db.InventoryItems.FirstOrDefaultAsync(i => i.Id == itemId, ct);
                 if (item is not null)
-                {
-                    item.QuantityOnHand += line.Quantity;
-                    item.UpdatedAtUtc = DateTime.UtcNow;
-                }
+                    _ = stockAdjuster.TryReceipt(item, line.Quantity);
             }
 
             db.JobPurchaseLines.Remove(line);

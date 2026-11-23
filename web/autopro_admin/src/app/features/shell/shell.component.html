@@ -14,7 +14,13 @@
       <a routerLink="/customers" routerLinkActive="active">Customers</a>
       <a routerLink="/vehicles" routerLinkActive="active">Vehicles</a>
       <a routerLink="/sales" routerLinkActive="active">Sales</a>
-      <a routerLink="/inventory" routerLinkActive="active">Inventory</a>
+      <a
+        routerLink="/inventory"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="inventoryNavActiveOptions"
+      >
+        Inventory
+      </a>
       <a routerLink="/suppliers" routerLinkActive="active">Suppliers</a>
       <a routerLink="/settings/business" routerLinkActive="active">Business settings</a>
     </nav>

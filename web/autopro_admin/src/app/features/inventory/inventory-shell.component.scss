@@ -1,0 +1,123 @@
+.inventory-module {
+  max-width: 1200px;
+}
+
+.inventory-module__header {
+  margin-bottom: 1rem;
+}
+
+.inventory-module__header h1 {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ap-text);
+}
+
+.inventory-module__subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  color: var(--ap-muted);
+  line-height: 1.45;
+}
+
+.inventory-module__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  background: var(--ap-card);
+  border: 1px solid var(--ap-border);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(26, 29, 38, 0.04);
+  overflow: hidden;
+}
+
+.inventory-module__tab {
+  position: relative;
+  flex: 1 1 0;
+  min-width: min(100%, 9.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.85rem 1.1rem;
+  text-decoration: none;
+  color: var(--ap-muted);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--ap-border);
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.inventory-module__tab:last-child {
+  border-right: none;
+}
+
+.inventory-module__tab:hover {
+  color: var(--ap-text);
+  background: #f8fafc;
+}
+
+.inventory-module__tab:focus-visible {
+  outline: 2px solid var(--ap-primary);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.inventory-module__tab-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.inventory-module__tab-hint {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.inventory-module__tab--active {
+  color: var(--ap-primary);
+  background: linear-gradient(180deg, #f0f6ff 0%, var(--ap-card) 100%);
+}
+
+.inventory-module__tab--active .inventory-module__tab-hint {
+  color: var(--ap-primary);
+  opacity: 0.75;
+}
+
+.inventory-module__tab--active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--ap-primary);
+}
+
+.inventory-module__content {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .inventory-module__tabs {
+    flex-direction: column;
+  }
+
+  .inventory-module__tab {
+    border-right: none;
+    border-bottom: 1px solid var(--ap-border);
+    width: 100%;
+  }
+
+  .inventory-module__tab:last-child {
+    border-bottom: none;
+  }
+}

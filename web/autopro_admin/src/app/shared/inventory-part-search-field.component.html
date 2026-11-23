@@ -1,5 +1,5 @@
-<div class="part-picker">
-  <span class="field-label">Part / service</span>
+<div class="part-picker" [class.part-picker--stretch]="stretch()">
+  <span class="field-label">{{ fieldLabel() }}</span>
 
   <div class="trigger-wrap">
     <div class="trigger-row">
@@ -71,7 +71,7 @@
     }
   </div>
 
-  @if (value(); as selected) {
+  @if (showSelectionHint() && value(); as selected) {
     <p class="selection-hint muted small">
       {{ selected.partNumber }} · {{ selected.quantityOnHand }} on hand
     </p>

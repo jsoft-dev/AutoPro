@@ -206,6 +206,19 @@ AutoPro/
 
 After AO **close** (payment), the API can email the customer when their profile includes an email. Local dev defaults to **log-only** (no SMTP signup). See **[docs/email-payment-thank-you.md](docs/email-payment-thank-you.md)**.
 
+## Inventory: GRN and purchase orders
+
+- **Goods receipts (GRN):** admin nav **GRN** — draft → **Post** increases `QuantityOnHand`.
+- **Purchase orders:** admin nav **PO** — approve, then receive via GRN with optional PO link.
+- Stock policy: [docs/inventory-stock-policy.md](docs/inventory-stock-policy.md)
+
+| Method | Path | Role |
+|--------|------|------|
+| GET/POST/PUT | `/api/v1/admin/goods-receipts` | GRN CRUD (draft) |
+| POST | `/api/v1/admin/goods-receipts/{id}/post` | Post GRN → stock in |
+| GET/POST/PUT | `/api/v1/admin/purchase-orders` | PO CRUD |
+| POST | `/api/v1/admin/purchase-orders/{id}/approve` | Approve PO |
+
 ## Next (in-repo backlog)
 
 - CTO / Supervisor roles

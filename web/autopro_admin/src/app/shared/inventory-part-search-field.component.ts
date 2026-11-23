@@ -4,6 +4,7 @@ import {
   ElementRef,
   HostListener,
   inject,
+  input,
   model,
   signal,
   viewChild,
@@ -39,6 +40,9 @@ export class InventoryPartSearchFieldComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
 
   readonly value = model<InventorySearchItem | null>(null);
+  readonly fieldLabel = input('Item');
+  readonly showSelectionHint = input(true);
+  readonly stretch = input(false);
 
   readonly open = signal(false);
   readonly panelQuery = signal('');

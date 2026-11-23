@@ -1,0 +1,140 @@
+<a class="back" routerLink="/inventory/purchase-orders">← Purchase orders</a>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  @if (pageError()) {
+    <div class="alert">{{ pageError() }}</div>
+  }
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Purchase order</p>
+      <h1>{{ createMode() ? 'New PO' : poNumber() }}</h1>
+      @if (!createMode()) {
+        <p class="lede">Status: {{ status() }}</p>
+      }
+    </div>
+  </header>
+
+  @if (!readOnly()) {
+    <form class="card form form--wide" (submit)="submit($event)">
+      <label>
+        <span>Supplier</span>
+        <select name="supplierId" [(ngModel)]="supplierId" required>
+          <option value="" disabled>Select supplier</option>
+          @for (s of supplierOptions(); track s.id) {
+            <option [value]="s.id">{{ s.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Notes</span>
+        <textarea name="notes" rows="2" [(ngModel)]="notes"></textarea>
+      </label>
+
+      <section class="lines-section">
+        <div class="lines-section__head">
+          <h2>Order lines</h2>
+          <p>Parts you are ordering from this supplier.</p>
+        </div>
+        <div class="add-line-toolbar">
+          <div class="add-line-toolbar__field">
+            <app-inventory-part-search-field
+              [(value)]="partPick"
+              [showSelectionHint]="false"
+              [stretch]="true"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn-primary add-line-toolbar__btn"
+            (click)="addLineFromPicker()"
+            [disabled]="!partPick()"
+          >
+            Add line
+          </button>
+        </div>
+
+        @if (lines().length === 0) {
+          <p class="lines-empty">No lines yet. Pick an item and click Add line.</p>
+        } @else {
+          <div class="lines-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Qty ordered</th>
+                  <th>Unit cost (LKR)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of lines(); track line.inventoryItemId; let i = $index) {
+                  <tr>
+                    <td>
+                      <span class="line-part-name">{{ line.partName }}</span>
+                      <span class="line-part-meta">{{ line.partNumber }}</span>
+                    </td>
+                    <td>
+                      <input type="number" min="0.001" step="any" [(ngModel)]="line.quantityOrdered" [name]="'qty' + i" />
+                    </td>
+                    <td>
+                      <input type="number" min="0" step="0.01" [(ngModel)]="line.unitCost" [name]="'cost' + i" />
+                    </td>
+                    <td>
+                      <button type="button" class="linkish" (click)="removeLine(i)">Remove</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : createMode() ? 'Create PO' : 'Save draft' }}
+        </button>
+        @if (!createMode()) {
+          <button type="button" class="ghost" (click)="approve()" [disabled]="saving()">Approve PO</button>
+          <button type="button" class="ghost" (click)="cancelPo()" [disabled]="saving()">Cancel PO</button>
+        }
+      </div>
+    </form>
+  } @else {
+    <div class="card form--wide">
+      <p class="lede"><strong>Supplier ID:</strong> {{ supplierId }}</p>
+      <div class="lines-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Ordered</th>
+              <th>Received</th>
+              <th>Remaining</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines(); track line.inventoryItemId) {
+              <tr>
+                <td>
+                  <span class="line-part-name">{{ line.partNumber }}</span>
+                </td>
+                <td>{{ line.quantityOrdered }}</td>
+                <td>{{ line.quantityReceived }}</td>
+                <td>{{ line.quantityRemaining }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="form-followup">
+        <a routerLink="/inventory/goods-receipts/new" [queryParams]="{ purchaseOrderId: poId() }"
+          >Receive against this PO</a
+        >
+      </p>
+    </div>
+  }
+}

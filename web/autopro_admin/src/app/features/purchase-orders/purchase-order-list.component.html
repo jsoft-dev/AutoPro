@@ -1,0 +1,93 @@
+<div class="page-header">
+  <div>
+    <h2 class="section-title">Purchase orders</h2>
+    <p class="lede">Order from suppliers; stock increases when you post a goods receipt.</p>
+  </div>
+  <hgroup class="actions">
+    <a routerLink="/inventory/purchase-orders/new" class="btn-primary">New purchase order</a>
+    <button type="button" class="ghost" (click)="load()" [disabled]="loading()">Refresh</button>
+  </hgroup>
+</div>
+
+<section class="filters-panel">
+  <form class="filter-form" (submit)="onSearchSubmit($event)">
+    <div class="filter-row">
+      <label class="field field--search">
+        <span class="field-label">Search</span>
+        <input
+          type="search"
+          name="q"
+          placeholder="PO number or supplier"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          autocomplete="off"
+        />
+      </label>
+      <div class="field field--actions">
+        <span class="field-label field-label--hidden">Actions</span>
+        <div class="button-row">
+          <button type="submit" class="ghost" [disabled]="loading()">Search</button>
+          @if (searchQuery().trim()) {
+            <button type="button" class="ghost" (click)="clearSearch()">Clear</button>
+          }
+        </div>
+      </div>
+    </div>
+  </form>
+</section>
+
+@if (error()) {
+  <div class="alert">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading purchase orders…</p>
+} @else if (items().length === 0) {
+  <div class="empty">
+    @if (searchQuery().trim()) {
+      <p>No purchase orders match your search.</p>
+      <p class="muted">
+        <button type="button" class="linkish inline" (click)="clearSearch()">Clear search</button>
+        or <a routerLink="/inventory/purchase-orders/new">create a purchase order</a>.
+      </p>
+    } @else {
+      <p>No purchase orders yet.</p>
+      <p class="muted">
+        <a routerLink="/inventory/purchase-orders/new">Create your first PO</a> when ordering from a supplier.
+      </p>
+    }
+  </div>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>PO #</th>
+          <th>Supplier</th>
+          <th>Status</th>
+          <th>Lines</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of items(); track row.id) {
+          <tr>
+            <td>
+              <a [routerLink]="['/inventory/purchase-orders', row.id]" class="mono">{{ row.poNumber }}</a>
+            </td>
+            <td>{{ row.supplierName }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.lineCount }}</td>
+            <td>{{ row.createdAtUtc | date: 'mediumDate' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [page]="page()"
+    [pageSize]="pageSize()"
+    [totalCount]="totalCount()"
+    (pageChange)="page.set($event); load()"
+  />
+}

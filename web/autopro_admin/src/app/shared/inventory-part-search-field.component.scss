@@ -4,6 +4,11 @@
   gap: 0.35rem;
 }
 
+.part-picker--stretch .trigger-wrap {
+  max-width: none;
+  width: 100%;
+}
+
 .field-label {
   font-size: 0.85rem;
   font-weight: 500;

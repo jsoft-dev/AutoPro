@@ -62,7 +62,7 @@
     </label>
     @if (!createMode() && supplierId()) {
       <p class="hint">
-        <a [routerLink]="['/inventory']" [queryParams]="{ supplierId: supplierId() }">View inventory parts</a>
+        <a [routerLink]="['/inventory/items']" [queryParams]="{ supplierId: supplierId() }">View inventory items</a>
         from this supplier.
       </p>
     }

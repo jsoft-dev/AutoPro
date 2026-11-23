@@ -1,0 +1,88 @@
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  animation: confirm-backdrop-in 0.18s ease-out;
+}
+
+.confirm-dialog {
+  width: min(100%, 26.5rem);
+  padding: 1.35rem 1.35rem 1.15rem;
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+  background: var(--ap-card);
+  box-shadow:
+    0 16px 40px rgba(15, 23, 42, 0.18),
+    0 2px 8px rgba(15, 23, 42, 0.08);
+  animation: confirm-panel-in 0.2s ease-out;
+}
+
+.confirm-dialog__header {
+  margin-bottom: 0.75rem;
+}
+
+.confirm-dialog__title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ap-text);
+}
+
+.confirm-dialog__body {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ap-muted);
+}
+
+.confirm-dialog__body :where(p) {
+  margin: 0 0 0.75rem;
+}
+
+.confirm-dialog__body :where(p:last-child) {
+  margin-bottom: 0;
+}
+
+.confirm-dialog__actions {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.btn-primary--danger {
+  background: var(--ap-danger);
+}
+
+.btn-primary--danger:hover:not(:disabled) {
+  background: #8f1414;
+}
+
+@keyframes confirm-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes confirm-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
